@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Billing Desk</title>
+<style>
+:root{
+  --ink:#1E2A26; --paper:#F6F4EE; --card:#FFFFFF;
+  --teal:#0F3D3E; --teal-dark:#0A2B2C; --teal-soft:#E4EEEC;
+  --amber:#E0982C; --amber-dark:#B87418;
+  --line:#E2DFD4; --muted:#5B655F;
+  --ok:#1F7A4C; --ok-bg:#EFF6F1; --ok-line:#CFE3D6;
+  --warn:#8A5A0B; --warn-bg:#FBF3E7; --warn-line:#F0DDB8;
+  --error:#B3261E; --error-bg:#FBE9E7; --error-line:#F1C7C2;
+  --radius:12px; --shadow:0 2px 10px rgba(15,61,62,0.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;font-size:14px;line-height:1.45}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+a{color:var(--teal)}
+
+/* ---------- shell ---------- */
+#app{display:grid;grid-template-columns:224px 1fr;min-height:100vh}
+#side{background:var(--teal);color:#fff;padding:16px 10px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px 14px}
+.brand-mark{background:var(--amber);color:var(--teal-dark);font-weight:800;font-size:13px;padding:7px 8px;border-radius:9px}
+.brand b{display:block;font-size:15px}
+.brand small{display:block;color:#CFE3E0;font-size:11.5px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav button{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:0;color:#DCEBE8;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer}
+.nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav button.on{background:var(--amber);color:var(--teal-dark);font-weight:600}
+.nav .grp{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#9DBDB8;padding:14px 10px 4px}
+.nav .bdg{background:rgba(255,255,255,.18);border-radius:10px;padding:0 7px;font-size:11.5px}
+.nav button.on .bdg{background:rgba(10,43,44,.15)}
+.nav .bdg.err{background:#C4473F;color:#fff}
+#main{min-width:0;display:flex;flex-direction:column}
+#bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--paper);position:sticky;top:0;z-index:5}
+#bar h2{margin:0;font-size:1.2rem;flex:1;min-width:160px}
+#barActions{display:flex;gap:8px;flex-wrap:wrap}
+#saveBadge{font-size:12px;color:var(--muted);white-space:nowrap}
+#saveBadge.warn{color:var(--warn);font-weight:600}
+#view{padding:18px 22px 60px;max-width:1500px;width:100%}
+@media (max-width:860px){
+  #app{grid-template-columns:1fr}
+  #side{position:static;height:auto;padding:10px}
+  .nav{display:flex;flex-wrap:wrap;gap:4px}
+  .nav button{width:auto}
+  .nav .grp{display:none}
+  #view{padding:14px 16px 60px}
+  #bar{padding:12px 16px}
+}
+
+/* ---------- building blocks ---------- */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;margin-bottom:16px}
+.card h3{margin:0 0 4px;font-size:1rem}
+.card .sub{margin:0 0 12px;color:var(--muted);font-size:.86rem}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;cursor:pointer;border:2px solid transparent}
+.kpi:hover{border-color:var(--teal-soft)}
+.kpi .n{font-size:1.7rem;font-weight:700;color:var(--teal)}
+.kpi .l{color:var(--muted);font-size:.84rem}
+.kpi.alert .n{color:var(--error)}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 13px;border-radius:9px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--teal)}
+.btn.pri{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn.pri:hover{background:var(--teal-dark)}
+.btn.amb{background:var(--amber);border-color:var(--amber);color:var(--teal-dark)}
+.btn.amb:hover{background:var(--amber-dark);color:#fff}
+.btn.danger{color:var(--error);border-color:var(--error-line)}
+.btn.danger:hover{background:var(--error-bg)}
+.btn.sm{padding:4px 9px;font-size:12.5px;border-radius:7px}
+.btn.link{border:0;background:none;color:var(--teal);padding:2px 4px;text-decoration:underline}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row.end{justify-content:flex-end}
+.spacer{flex:1}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.chip{display:inline-block;padding:1px 9px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;background:#EEE;color:#444}
+.chip.draft{background:#ECEAE3;color:#5B655F}
+.chip.sent{background:#E3EEF9;color:#1F5C99}
+.chip.agreed,.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.err{background:var(--error-bg);color:var(--error)}
+.chip.teal{background:var(--teal-soft);color:var(--teal)}
+.note{padding:10px 12px;border-radius:9px;font-size:.88rem;margin:0 0 12px}
+.note.warn{background:var(--warn-bg);border:1px solid var(--warn-line)}
+.note.ok{background:var(--ok-bg);border:1px solid var(--ok-line)}
+.note.err{background:var(--error-bg);border:1px solid var(--error-line)}
+.note.info{background:var(--teal-soft)}
+.empty{text-align:center;color:var(--muted);padding:28px 10px}
+
+/* tables */
+.tw{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}
+table.t{border-collapse:collapse;width:100%;font-size:13px}
+table.t th{background:#F1EFE8;text-align:left;font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;z-index:1}
+table.t td{padding:7px 10px;border-bottom:1px solid #EFECE4;vertical-align:middle}
+table.t tr:last-child td{border-bottom:0}
+table.t tr.click{cursor:pointer}
+table.t tr.click:hover td{background:#FAF8F2}
+table.t td.n,table.t th.n{text-align:right;white-space:nowrap}
+table.t tfoot td{font-weight:700;background:#F7F5EF;border-top:1px solid var(--line)}
+table.t tr.dead td{opacity:.5;text-decoration:line-through}
+/* editable rows */
+table.ed td{padding:2px 3px}
+table.ed input,table.ed select{width:100%;border:1px solid transparent;background:transparent;padding:5px 6px;border-radius:6px;min-width:60px}
+table.ed input:hover,table.ed select:hover{border-color:var(--line)}
+table.ed input:focus,table.ed select:focus{border-color:var(--teal);outline:none;background:#fff}
+table.t tr.added td{background:var(--ok-bg)}
+table.t td.chg{background:var(--warn-bg);box-shadow:inset 0 -2px 0 var(--amber)}
+table.ed td.ro{padding:6px 8px}
+
+/* forms */
+.form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 14px}
+.fld{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted);min-width:0}
+.fld.wide{grid-column:1/-1}
+.fld b{color:var(--error)}
+.fld input,.fld select,.fld textarea,.inp{border:1px solid #D6D2C5;border-radius:8px;padding:7px 9px;background:#fff;color:var(--ink);font-size:14px;width:100%}
+.fld input:focus,.fld select:focus,.fld textarea:focus,.inp:focus{outline:2px solid rgba(15,61,62,.25);border-color:var(--teal)}
+.fld input[readonly]{background:#F4F2EC}
+.fld small{color:#8A928D;font-size:11.5px}
+.fld.chk{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:13.5px}
+.fld.chk input{width:auto}
+.fsec{grid-column:1/-1;font-weight:700;color:var(--teal);border-bottom:1px solid var(--line);padding:10px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.5px}
+.fsec:first-child{padding-top:0}
+.fsec small{display:block;text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.filters .inp{width:auto;min-width:130px;padding:6px 9px;font-size:13px}
+
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(10,30,30,.45);display:flex;align-items:flex-start;justify-content:center;z-index:50;padding:30px 14px;overflow:auto}
+.mdl{background:#fff;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.25);width:100%;max-width:640px;display:flex;flex-direction:column;max-height:calc(100vh - 60px)}
+.mdl.wide{max-width:1180px}
+.mdl.mid{max-width:860px}
+.mh{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.mh h3{margin:0;flex:1;font-size:1.05rem}
+.mh .x{border:0;background:none;font-size:24px;line-height:1;cursor:pointer;color:var(--muted)}
+.mb{padding:16px 18px;overflow:auto;flex:1}
+.mf{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+.split{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.9fr);gap:18px}
+@media (max-width:900px){.split{grid-template-columns:1fr}}
+.panel{background:#F8F7F2;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13px;align-self:start;position:sticky;top:0}
+.panel h4{margin:10px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--teal)}
+.panel h4:first-child{margin-top:0}
+.panel .kv{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
+.panel .kv b{font-weight:600}
+.panel .tot{border-top:1px solid var(--line);margin-top:3px;padding-top:4px;font-weight:700}
+.issues{list-style:none;margin:0;padding:0}
+.issues li{padding:4px 8px;border-radius:6px;margin-bottom:4px;font-size:12.5px}
+.issues li.error{background:var(--error-bg);color:var(--error)}
+.issues li.warn{background:var(--warn-bg);color:var(--warn)}
+.hist{max-height:150px;overflow:auto;font-size:12px;color:var(--muted)}
+.hist div{padding:2px 0;border-bottom:1px dotted var(--line)}
+
+/* template editor */
+.tfl{display:grid;grid-template-columns:24px 1fr auto auto;gap:4px 6px;align-items:center}
+.tfl .k{font-size:11px;color:#9AA29D}
+.tfl input[type=text]{padding:4px 7px;border:1px solid #D6D2C5;border-radius:6px;width:100%}
+.cfr{display:grid;grid-template-columns:1.3fr .8fr 1fr 1fr auto;gap:6px;margin-bottom:6px}
+.cfr input,.cfr select{padding:5px 7px;border:1px solid #D6D2C5;border-radius:6px;width:100%;min-width:0}
+.pv{background:#E9E6DD;border-radius:10px;padding:14px;overflow:auto;max-height:70vh}
+.pv .pvi{zoom:.62;background:#fff;padding:10mm;box-shadow:0 2px 8px rgba(0,0,0,.15);width:max-content;margin:0 auto}
+
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+#toast div{background:var(--teal-dark);color:#fff;padding:9px 16px;border-radius:9px;box-shadow:var(--shadow);font-size:13.5px;max-width:90vw}
+#toast div.err{background:var(--error)}
+#toast div.warn{background:var(--amber-dark)}
+
+/* ---------- printed documents ---------- */
+#printArea{display:none}
+@media print{
+  html,body{background:#fff}
+  #app,#modalRoot,#toast{display:none!important}
+  #printArea{display:block}
+}
+@page{size:A4;margin:10mm}
+@page a5{size:A5;margin:8mm}
+@page land{size:A4 landscape;margin:10mm}
+.doc{font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;font-size:11.5px;line-height:1.35;break-after:page;width:190mm;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.doc:last-child{break-after:auto}
+.doc.p-A5{page:a5;width:132mm}
+.doc.land{page:land;width:277mm}
+.doc table{border-collapse:collapse;width:100%}
+.doc td,.doc th{border:1px solid #000;padding:4px 6px;vertical-align:top;text-align:left}
+.doc th{background:#EEE;font-weight:700}
+.doc .r{text-align:right}
+.doc .c{text-align:center}
+.doc .b{font-weight:700}
+.doc .hd{text-align:center;border:1px solid #000;padding:8px 8px 6px}
+.doc .hd .nm{font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.doc .hd .ad{font-size:11px;white-space:pre-line}
+.doc .ttl{font-weight:700;text-align:center;border:1px solid #000;border-top:0;padding:5px;letter-spacing:2px;background:#EEE}
+.doc .lbl{color:#333;width:24%;white-space:nowrap}
+.doc .big{font-size:15px;font-weight:700}
+.doc .gap{height:8px}
+.doc .ft{display:flex;justify-content:space-between;align-items:flex-end;margin-top:28px;font-size:11px}
+.doc .ftn{font-size:10.5px;margin-top:8px;white-space:pre-line}
+.doc .pty{white-space:pre-line}
+.doc.ticket{width:80mm;font-family:'Courier New',Courier,monospace;font-size:12px;border:1px dashed #000;padding:4mm}
+.doc.ticket .tc{text-align:center}
+.doc.ticket .ln{display:flex;gap:6px}
+.doc.ticket .ln span:first-child{width:42%;flex-shrink:0}
+.doc.ticket hr{border:0;border-top:1px dashed #000;margin:5px 0}
+.doc.ticket .bigw{font-size:14px;font-weight:700}
+.doc .modbar{background:#222;color:#fff;padding:8px 10px;display:flex;justify-content:space-between;align-items:center}
+.doc .modbar .nm{font-size:17px;font-weight:700}
+.doc .wbox{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.doc .wbox div{border:1.5px solid #000;padding:6px;text-align:center}
+.doc .wbox b{display:block;font-size:16px}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <div class="brand"><span class="brand-mark">BD</span><div><b>Billing Desk</b><small id="bizName">Transactions &amp; documents</small></div></div>
+    <nav class="nav" id="nav"></nav>
+  </aside>
+  <main id="main">
+    <header id="bar"><h2 id="pageTitle"></h2><div id="barActions"></div><span id="saveBadge"></span></header>
+    <div id="view"></div>
+  </main>
+</div>
+<div id="modalRoot"></div>
+<div id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   Billing Desk — single-file version 1
+   Data lives in this browser (localStorage) and, optionally, in a linked
+   JSON data file. Nothing is sent anywhere.
+   ===================================================================== */
+
+// ---------- small helpers ----------
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const has = v => v !== null && v !== undefined && String(v).trim() !== '';
+const num = v => { if (!has(v)) return 0; const n = parseFloat(String(v).replace(/,/g, '')); return isFinite(n) ? n : 0; };
+const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+const money = n => (+n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const qf = (n, d = 3) => (+n || 0).toLocaleString('en-IN', { maximumFractionDigits: d });
+const pad2 = n => String(n).padStart(2, '0');
+const isoOf = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+const todayISO = () => isoOf(new Date());
+const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return isoOf(d); };
+const fmtDate = s => { if (!s) return ''; const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s); return m ? `${m[3]}-${m[2]}-${m[1]}` : s; };
+const fmtDT = ts => ts ? new Date(ts).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+const byId = (list, id) => id ? list.find(x => x.id === id) : undefined;
+const normVeh = v => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const normInv = v => String(v || '').toUpperCase().replace(/\s+/g, '');
+const sum = (arr, f) => arr.reduce((a, x) => a + (f ? f(x) : x), 0);
+function fyOf(dateStr) {
+  const d = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
+  const y = d.getFullYear(), s = d.getMonth() + 1 >= 4 ? y : y - 1;
+  return pad2(s % 100) + '-' + pad2((s + 1) % 100);
+}
+function fyStartISO() { const d = new Date(); const y = d.getMonth() + 1 >= 4 ? d.getFullYear() : d.getFullYear() - 1; return y + '-04-01'; }
+function addMinutes(hhmm, m) {
+  const x = /^(\d{1,2}):(\d{2})/.exec(hhmm || ''); if (!x) return '';
+  const t = (+x[1] * 60 + +x[2] + m + 1440) % 1440; return pad2(Math.floor(t / 60)) + ':' + pad2(t % 60);
+}
+
+const STATES = { '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh', '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan', '09': 'Uttar Pradesh', '10': 'Bihar', '11': 'Sikkim', '12': 'Arunachal Pradesh', '13': 'Nagaland', '14': 'Manipur', '15': 'Mizoram', '16': 'Tripura', '17': 'Meghalaya', '18': 'Assam', '19': 'West Bengal', '20': 'Jharkhand', '21': 'Odisha', '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '24': 'Gujarat', '25': 'Daman & Diu', '26': 'Dadra & Nagar Haveli and Daman & Diu', '27': 'Maharashtra', '29': 'Karnataka', '30': 'Goa', '31': 'Lakshadweep', '32': 'Kerala', '33': 'Tamil Nadu', '34': 'Puducherry', '35': 'Andaman & Nicobar Islands', '36': 'Telangana', '37': 'Andhra Pradesh', '38': 'Ladakh', '97': 'Other Territory' };
+const STATE_OPTS = [['', '— from GSTIN —'], ...Object.entries(STATES).map(([c, n]) => [c, c + ' · ' + n])];
+
+// ---------- GSTIN ----------
+const GST_CH = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function gstCheckChar(s14) {
+  let s = 0;
+  for (let i = 0; i < 14; i++) { const p = GST_CH.indexOf(s14[i]) * (i % 2 ? 2 : 1); s += Math.floor(p / 36) + (p % 36); }
+  return GST_CH[(36 - (s % 36)) % 36];
+}
+function gstinStatus(g) {
+  g = String(g || '').toUpperCase().trim();
+  if (!g) return 'missing';
+  if (!/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(g)) return 'format';
+  if (!STATES[g.slice(0, 2)]) return 'state';
+  if (gstCheckChar(g.slice(0, 14)) !== g[14]) return 'checksum';
+  return 'ok';
+}
+const GST_MSG = { format: 'wrong format', state: 'unknown state code', checksum: 'check digit does not match — likely a typo' };
+function partyState(p) {
+  if (!p) return '';
+  const g = String(p.gstin || '').trim();
+  if (/^\d{2}/.test(g) && STATES[g.slice(0, 2)]) return g.slice(0, 2);
+  return p.stateCode || '';
+}
+const VEH_RE = /^([A-Z]{2}\d{1,2}[A-Z]{0,3}\d{4}|\d{2}BH\d{4}[A-Z]{1,2})$/;
+
+// ---------- amount in words (Indian system) ----------
+function inWords(n) {
+  n = Math.round((+n || 0) * 100) / 100;
+  const rupees = Math.floor(n), paise = Math.round((n - rupees) * 100);
+  const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  const two = x => x < 20 ? a[x] : b[Math.floor(x / 10)] + (x % 10 ? ' ' + a[x % 10] : '');
+  const three = x => x >= 100 ? a[Math.floor(x / 100)] + ' Hundred' + (x % 100 ? ' ' + two(x % 100) : '') : two(x);
+  const conv = x => {
+    if (x === 0) return 'Zero';
+    const out = [];
+    const cr = Math.floor(x / 1e7); x %= 1e7;
+    const l = Math.floor(x / 1e5); x %= 1e5;
+    const t = Math.floor(x / 1000); x %= 1000;
+    if (cr) out.push(conv(cr) + ' Crore');
+    if (l) out.push(two(l) + ' Lakh');
+    if (t) out.push(two(t) + ' Thousand');
+    if (x) out.push(three(x));
+    return out.join(' ');
+  };
+  return 'Rupees ' + conv(rupees) + (paise ? ' and ' + two(paise) + ' Paise' : '') + ' Only';
+}
+
+/* =====================================================================
+   Data store
+   ===================================================================== */
+const KEY = 'billingdesk.v1';
+function blankDb() {
+  return {
+    v: 2, savedAt: 0,
+    settings: { bizName: '', txPrefix: 'TR-', txNext: 1, sumPrefix: 'SUM-', sumNext: 1, ewbLimit: 50000, ownFreightId: '', wtTol: 0 },
+    clients: [], buyers: [], products: [], freight: [], bridges: [], vehicles: [],
+    summaries: [], tx: [], log: []
+  };
+}
+function migrate(d) {
+  const b = blankDb();
+  for (const k in b) if (d[k] === undefined) d[k] = b[k];
+  d.settings = Object.assign(b.settings, d.settings || {});
+  if ((d.v || 1) < 2) {
+    // v2: weighment slips are recorded from the real slip, not generated. Drop what the old
+    // version generated (slip numbers, default times, vehicle tare) so the real figures get entered.
+    for (const t of d.tx || []) {
+      if (has(t.grossWt) || has(t.tareWt)) continue;
+      const hadSlip = !!(t.docs && t.docs.ws) || has(t.slipNo);
+      if (t.docs) delete t.docs.ws;
+      t.slipNo = ''; t.tare = '';
+      if (t.tareTime === '10:00' && t.grossTime === '10:45') { t.tareTime = ''; t.grossTime = ''; }
+      if (hadSlip) (t.history = t.history || []).push({ at: Date.now(), msg: 'Slip number made by the old version removed — enter the details from the real weighment slip' });
+    }
+    for (const v of d.vehicles || []) delete v.tare;
+    for (const w of d.bridges || []) { delete w.tpl; delete w.prefix; delete w.next; delete w.pad; delete w.unit; }
+    d.v = 2;
+  }
+  return d;
+}
+let db = (() => { try { const s = localStorage.getItem(KEY); if (s) return migrate(JSON.parse(s)); } catch (e) { /* storage blocked */ } return blankDb(); })();
+let storageOk = true;
+function save() {
+  db.savedAt = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(db)); storageOk = true; }
+  catch (e) { storageOk = false; toast('Browser storage failed: ' + e.message + ' — download a backup from Settings.', 'err'); }
+  fileAutosave();
+  updateSaveBadge();
+}
+function log(msg) { db.log.unshift({ at: Date.now(), msg }); if (db.log.length > 400) db.log.length = 400; }
+
+// ---------- linked data file (File System Access API, Chrome / Edge) ----------
+const fsSupported = typeof window.showSaveFilePicker === 'function';
+let fileHandle = null, fileState = 'none', fileTimer = null, writing = false, writeAgain = false, lastFileSave = 0;
+function idb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('billingdesk', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+async function idbGet(k) { try { const d = await idb(); return await new Promise(res => { const q = d.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); } catch (e) { return null; } }
+async function idbSet(k, v) { try { const d = await idb(); await new Promise(res => { const t = d.transaction('kv', 'readwrite'); v === undefined ? t.objectStore('kv').delete(k) : t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = res; }); } catch (e) { /* ignore */ } }
+async function initFile() {
+  if (!fsSupported) return;
+  fileHandle = await idbGet('handle');
+  if (!fileHandle) return;
+  try {
+    const p = await fileHandle.queryPermission({ mode: 'readwrite' });
+    fileState = p === 'granted' ? 'linked' : 'needs-permission';
+    if (fileState === 'linked') await syncFromFile();
+  } catch (e) { fileState = 'needs-permission'; }
+  render();
+}
+async function reconnectFile() {
+  if (!fileHandle) return;
+  try {
+    const p = await fileHandle.requestPermission({ mode: 'readwrite' });
+    if (p === 'granted') { fileState = 'linked'; await syncFromFile(); render(); toast('Data file reconnected'); }
+  } catch (e) { toast('Could not reconnect: ' + e.message, 'err'); }
+}
+async function syncFromFile() {
+  const txt = await (await fileHandle.getFile()).text();
+  if (!txt.trim()) { await writeFile(); return; }
+  let d; try { d = JSON.parse(txt); } catch (e) { toast('The linked data file is not valid JSON — not loaded', 'err'); return; }
+  if ((d.savedAt || 0) > (db.savedAt || 0)) {
+    db = migrate(d);
+    try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* ignore */ }
+    toast('Loaded newer data from the linked file');
+  } else if ((d.savedAt || 0) < (db.savedAt || 0)) await writeFile();
+}
+async function writeFile() {
+  if (fileState !== 'linked' || !fileHandle) return;
+  if (writing) { writeAgain = true; return; }
+  writing = true;
+  try {
+    const w = await fileHandle.createWritable();
+    await w.write(JSON.stringify(db, null, 1)); await w.close();
+    lastFileSave = Date.now();
+  } catch (e) { fileState = 'needs-permission'; toast('Could not write the data file: ' + e.message, 'err'); }
+  writing = false;
+  if (writeAgain) { writeAgain = false; writeFile(); }
+  updateSaveBadge();
+}
+function fileAutosave() { if (fileState !== 'linked') return; clearTimeout(fileTimer); fileTimer = setTimeout(writeFile, 500); }
+async function linkNewFile() {
+  try {
+    const h = await window.showSaveFilePicker({ suggestedName: 'billing-desk-data.json', types: [{ description: 'Billing Desk data', accept: { 'application/json': ['.json'] } }] });
+    fileHandle = h; await idbSet('handle', h); fileState = 'linked';
+    await writeFile(); render(); toast('Data file linked — every change now saves to it');
+  } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'err'); }
+}
+async function openDataFile() {
+  try {
+    const [h] = await window.showOpenFilePicker({ types: [{ description: 'Billing Desk data', accept: { 'application/json': ['.json'] } }] });
+    const d = JSON.parse(await (await h.getFile()).text());
+    if (!d || !Array.isArray(d.tx)) throw new Error('This is not a Billing Desk data file');
+    if (!(await confirmBox('Replace the data in this browser with the data in "' + h.name + '"?', 'Replace and link'))) return;
+    db = migrate(d); fileHandle = h; await idbSet('handle', h); fileState = 'linked';
+    try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* ignore */ }
+    render(); toast('Data file opened and linked');
+  } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'err'); }
+}
+async function unlinkFile() { fileHandle = null; fileState = 'none'; await idbSet('handle', undefined); render(); toast('Data file unlinked (data stays in this browser)'); }
+window.addEventListener('beforeunload', e => { if (writing || fileTimer && fileState === 'linked' && Date.now() - db.savedAt < 1500) { e.preventDefault(); e.returnValue = ''; } });
+
+function updateSaveBadge() {
+  const el = $('#saveBadge'); if (!el) return;
+  el.className = '';
+  if (fileState === 'linked') el.textContent = '● Saved to data file' + (lastFileSave ? ' · ' + new Date(lastFileSave).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '');
+  else if (fileState === 'needs-permission') { el.innerHTML = '<button class="btn sm amb" data-act="reconnect">Reconnect data file</button>'; }
+  else if (!storageOk) { el.className = 'warn'; el.textContent = '⚠ Not saved — download a backup'; }
+  else el.textContent = '● Saved in this browser';
+}
+
+/* =====================================================================
+   Documents: field catalogues and templates
+   ===================================================================== */
+/* Only freight bills of your own transport business are printed here. Weighment slips and other
+   transporters' bills are recorded from the documents those businesses issue. */
+const FB_FIELDS = [['billNo', 'Bill No.'], ['billDate', 'Bill Date'], ['lrNo', 'LR / GR No.'], ['billTo', 'Bill To'], ['consignor', 'Consignor'], ['consignee', 'Consignee'], ['vehicle', 'Vehicle No.'], ['from', 'From'], ['to', 'To'], ['invoiceNo', 'Invoice No.'], ['invoiceDate', 'Invoice Date'], ['invoiceValue', 'Invoice Value'], ['ewbNo', 'E-Way Bill No.'], ['material', 'Description of Goods'], ['weight', 'Weight'], ['rate', 'Rate'], ['freight', 'Freight'], ['tax', 'GST'], ['total', 'Total'], ['words', 'Amount in Words'], ['bank', 'Bank Details'], ['terms', 'Terms'], ['sign', 'Signature']];
+const FB_SPECIAL = new Set(['billNo', 'billDate', 'lrNo', 'billTo', 'consignor', 'consignee', 'material', 'weight', 'rate', 'freight', 'tax', 'total', 'words', 'bank', 'terms', 'sign']);
+const LAYOUTS = { fb: [['standard', 'Standard (tax-invoice style)'], ['compact', 'Compact']] };
+function defaultTpl() {
+  return {
+    layout: 'standard', paper: 'A4', title: 'FREIGHT BILL',
+    header: '', footer: 'Subject to local jurisdiction. This is a computer-generated document.',
+    terms: 'Payment within 15 days.\nGoods carried at owner\'s risk.',
+    fields: FB_FIELDS.map(([k, label]) => ({ k, label, show: true })), custom: []
+  };
+}
+function normTpl(tpl, kind) {
+  const d = defaultTpl(kind);
+  if (!tpl) return d;
+  const t = Object.assign({}, d, tpl);
+  const F = FB_FIELDS;
+  const known = new Set(F.map(f => f[0]));
+  t.fields = (tpl.fields || []).filter(f => known.has(f.k)).map(f => ({ ...f }));
+  for (const [k, label] of F) if (!t.fields.find(f => f.k === k)) t.fields.push({ k, label, show: true });
+  t.custom = (tpl.custom || []).map(c => ({ ...c }));
+  return t;
+}
+function customVals(tx, kind, tpl) {
+  return tpl.custom.map(f => {
+    const v = f.perTx ? (tx.extra?.[kind]?.[f.id] ?? f.value ?? '') : (f.value ?? '');
+    return { id: f.id, label: f.label, type: f.type, value: v, display: f.type === 'amount' ? (has(v) ? money(num(v)) : '') : v };
+  }).filter(x => has(x.value) && has(x.label));
+}
+
+/* =====================================================================
+   Calculations — one place for every number on every document
+   ===================================================================== */
+const WEIGHT_UNITS = { KG: 1, KGS: 1, MT: 1000, TON: 1000, TONNE: 1000, QTL: 100 };
+const UNIT_OPTS = ['MT', 'KG', 'QTL', 'NOS', 'BAGS', 'BOX', 'LTR'];
+function findVehicle(no) { const n = normVeh(no); return n ? db.vehicles.find(v => normVeh(v.number) === n) : undefined; }
+function calc(tx) {
+  const client = byId(db.clients, tx.clientId), buyer = byId(db.buyers, tx.buyerId), prod = byId(db.products, tx.productId);
+  const qty = num(tx.qty), rate = num(tx.rate), gst = num(has(tx.gst) ? tx.gst : prod?.gst);
+  const unit = String(has(tx.unit) ? tx.unit : (prod?.unit || '')).toUpperCase();
+  const desc = has(tx.desc) ? tx.desc : (prod?.name || '');
+  const hsn = has(tx.hsn) ? tx.hsn : (prod?.hsn || '');
+  // invoice
+  const taxable = r2(qty * rate);
+  const sS = partyState(client), bS = partyState(buyer);
+  const inter = !!(sS && bS && sS !== bS);
+  const tax = r2(taxable * gst / 100);
+  const igst = inter ? tax : 0, cgst = inter ? 0 : r2(tax / 2), sgst = inter ? 0 : r2(tax - r2(tax / 2));
+  const gross = r2(taxable + tax), total = Math.round(gross), roundOff = r2(total - gross);
+  // weights (kg): what the invoice says vs what the weighbridge slip says
+  let invKg = null;
+  if (WEIGHT_UNITS[unit]) invKg = r2(qty * WEIGHT_UNITS[unit]);
+  else if (prod && num(prod.weightPerUnit) > 0) invKg = r2(qty * num(prod.weightPerUnit));
+  const grossKg = has(tx.grossWt) ? num(tx.grossWt) : null, tare = has(tx.tareWt) ? num(tx.tareWt) : null;
+  const slipKg = grossKg != null && tare != null ? r2(grossKg - tare) : null;
+  const slipDone = !!(tx.bridgeId && has(tx.slipNo) && grossKg != null && tare != null);
+  const netKg = slipKg != null ? slipKg : invKg;      // freight is charged on the weighed quantity when known
+  // freight
+  const fc = byId(db.freight, tx.freightId);
+  const own = !!fc && fc.id === db.settings.ownFreightId;
+  const fbAmt = has(tx.fbAmt) ? num(tx.fbAmt) : null;
+  const basis = has(tx.freightBasis) ? tx.freightBasis : (fc?.basis || 'mt');
+  const frate = has(tx.freightRate) ? num(tx.freightRate) : num(fc?.rate);
+  let freight = 0;
+  if (basis === 'mt') freight = netKg != null ? netKg / 1000 * frate : 0;
+  else if (basis === 'kg') freight = (netKg || 0) * frate;
+  else if (basis === 'km') freight = num(tx.km) * frate;
+  else freight = frate;
+  freight = r2(has(tx.freightAmt) ? num(tx.freightAmt) : freight);
+  const other = fc && own ? customVals(tx, 'fb', normTpl(fc.tpl, 'fb')).filter(x => x.type === 'amount' && num(x.value)).map(x => ({ label: x.label, amt: r2(num(x.value)) })) : [];
+  const fTaxable = r2(freight + sum(other, x => x.amt));
+  const fbTo = has(tx.fbTo) ? tx.fbTo : (fc?.billTo || 'client');
+  const billTo = fbTo === 'buyer' ? buyer : client;
+  const fRate = fc && !fc.rcm ? num(fc.gst) : 0;
+  const fS = partyState(fc), tS = partyState(billTo);
+  const fInter = !!(fS && tS && fS !== tS);
+  const fTax = r2(fTaxable * fRate / 100);
+  const fIgst = fInter ? fTax : 0, fCgst = fInter ? 0 : r2(fTax / 2), fSgst = fInter ? 0 : r2(fTax - r2(fTax / 2));
+  const fGross = r2(fTaxable + fTax), fTotal = Math.round(fGross), fRound = r2(fTotal - fGross);
+  const rateLabel = basis === 'mt' ? '₹ ' + money(frate) + ' / MT' : basis === 'kg' ? '₹ ' + money(frate) + ' / Kg' : basis === 'km' ? '₹ ' + money(frate) + ' / km × ' + qf(num(tx.km)) + ' km' : 'Per trip';
+  return { client, buyer, prod, fc, own, fbAmt, qty, rate, gst, unit, desc, hsn, taxable, inter, cgst, sgst, igst, tax, roundOff, total, invKg, slipKg, slipDone, netKg, tare, grossKg, basis, frate, freight, other, fTaxable, fbTo, billTo, fRate, fInter, fCgst, fSgst, fIgst, fTax, fRound, fTotal, rateLabel, rcm: !!fc?.rcm, fcGstRate: num(fc?.gst) };
+}
+
+/* =====================================================================
+   Checks
+   ===================================================================== */
+function docsOutdated(tx) {
+  const d = tx.docs || {};
+  return !!(d.fb && tx.updated > d.fb.at && calc(tx).own);
+}
+const isOwnFreight = tx => !!tx.freightId && tx.freightId === db.settings.ownFreightId;
+/* our own freight bill printed / another transporter's bill recorded; true when no transporter is set */
+const fbDone = tx => !tx.freightId || (isOwnFreight(tx) ? !!tx.docs?.fb : has(tx.fbNo) && has(tx.fbAmt));
+const slipStarted = tx => has(tx.slipNo) || has(tx.grossWt) || has(tx.tareWt);
+function checkTx(tx) {
+  const out = [], E = m => out.push({ sev: 'error', msg: m }), W = m => out.push({ sev: 'warn', msg: m });
+  const c = calc(tx);
+  if (!c.client) E('Seller not selected');
+  if (!c.buyer) E('Buyer not selected');
+  if (!c.prod && !has(tx.desc)) E('Product not selected');
+  if (num(tx.qty) <= 0) E('Quantity is zero');
+  if (num(tx.rate) <= 0) E('Rate is zero');
+  for (const [p, nm] of [[c.client, 'Seller'], [c.buyer, 'Buyer']]) if (p) {
+    const s = gstinStatus(p.gstin);
+    if (s === 'missing') W(nm + ' GSTIN missing'); else if (s !== 'ok') E(`${nm} GSTIN looks wrong (${GST_MSG[s]})`);
+  }
+  if (!has(tx.vehicle)) E('Vehicle number missing');
+  else if (!VEH_RE.test(normVeh(tx.vehicle))) W('Vehicle number format looks unusual');
+  // weighment slip — figures copied from the slip the weighbridge issued
+  if (slipStarted(tx)) {
+    if (!tx.bridgeId) E('Weighbridge not selected for the slip');
+    if (!has(tx.slipNo)) E('Slip number missing — copy it from the weighment slip');
+    if (c.grossKg == null || c.tare == null) E('Gross and tare weights both needed — copy them from the slip');
+    else if (c.slipKg <= 0) E('Slip gross weight must be more than the tare weight');
+    else if (c.invKg == null) { if (c.qty > 0) W('Invoice weight unknown — set "kg per unit" on the product to compare with the slip'); }
+    else {
+      const diff = r2(c.slipKg - c.invKg), tol = Math.max(0, num(db.settings.wtTol));
+      if (Math.abs(diff) > tol) E(`Slip net weight ${qf(c.slipKg, 2)} kg doesn't match the invoice ${qf(c.invKg, 2)} kg (${diff > 0 ? '+' : ''}${qf(diff, 2)} kg)`);
+    }
+    if (tx.bridgeId && has(tx.slipNo)) {
+      const dup = db.tx.find(o => o.id !== tx.id && !o.deleted && o.bridgeId === tx.bridgeId && normInv(o.slipNo) === normInv(tx.slipNo));
+      if (dup) E(`Slip no. ${tx.slipNo} from this weighbridge is also on ${dup.code}`);
+    }
+    if (has(tx.wsDate) && has(tx.invDate) && tx.wsDate > tx.invDate) W('Weighment slip is dated after the invoice');
+  }
+  // freight
+  if (!tx.freightId) W('Freight company not selected');
+  else if (c.own) {
+    if (c.freight <= 0) W('Freight amount is zero');
+    if (c.basis === 'km' && num(tx.km) <= 0) W('Distance (km) needed for per-km freight');
+  } else if (has(tx.fbNo) || c.fbAmt != null) {
+    if (!has(tx.fbNo)) E("Transporter's bill number missing");
+    if (c.fbAmt == null) E("Amount on the transporter's bill missing");
+    else if (num(c.fc?.rate) > 0 && Math.abs(c.fbAmt - c.fTotal) >= 1) W(`Transporter's bill ₹${money(c.fbAmt)} differs from the expected freight ₹${money(c.fTotal)}`);
+    if (has(tx.fbNo)) {
+      const dup = db.tx.find(o => o.id !== tx.id && !o.deleted && o.freightId === tx.freightId && normInv(o.fbNo) === normInv(tx.fbNo));
+      if (dup) E(`Bill no. ${tx.fbNo} from this transporter is also on ${dup.code}`);
+    }
+  }
+  if (!has(tx.invNo)) W('Tally invoice number not entered yet');
+  else {
+    const dup = db.tx.find(o => o.id !== tx.id && !o.deleted && o.clientId === tx.clientId && normInv(o.invNo) === normInv(tx.invNo));
+    if (dup) E(`Invoice no. ${tx.invNo} is also used on ${dup.code}`);
+    if (c.total > num(db.settings.ewbLimit || 50000) && !has(tx.ewbNo)) W('E-way bill number missing (invoice value over ₹' + qf(db.settings.ewbLimit || 50000, 0) + ')');
+  }
+  if (has(tx.vehicle) && has(tx.date)) {
+    const same = db.tx.find(o => o.id !== tx.id && !o.deleted && normVeh(o.vehicle) === normVeh(tx.vehicle) && o.date === tx.date);
+    if (same) W(`Same vehicle is also on ${same.code} the same day`);
+  }
+  if (docsOutdated(tx)) W('Changed after the freight bill was printed — print it again');
+  return out;
+}
+function checkMasters() {
+  const out = [];
+  const g = (list, nm, m) => list.forEach(p => { const s = gstinStatus(p.gstin); if (s !== 'ok' && s !== 'missing') out.push({ sev: 'error', msg: `${nm} "${p.name}": GSTIN ${GST_MSG[s]}`, m, id: p.id }); });
+  g(db.clients, 'Seller', 'clients'); g(db.buyers, 'Buyer', 'buyers'); g(db.freight, 'Freight company', 'freight');
+  db.products.forEach(p => { if (!WEIGHT_UNITS[String(p.unit || '').toUpperCase()] && !(num(p.weightPerUnit) > 0)) out.push({ sev: 'warn', msg: `Product "${p.name}": unit ${p.unit || '(none)'} needs "kg per unit" to compare invoices with weighment slips`, m: 'products', id: p.id }); });
+  db.freight.forEach(f => { if (!has(f.gstin) && !has(f.pan)) out.push({ sev: 'warn', msg: `Freight company "${f.name}": no GSTIN or PAN`, m: 'freight', id: f.id }); });
+  return out;
+}
+function txStage(tx) {
+  if (tx.deleted) return ['Deleted', 'err'];
+  if (tx.delivered) return ['Delivered', 'ok'];
+  if (!has(tx.invNo)) return ['Awaiting invoice', 'draft'];
+  if (!calc(tx).slipDone) return ['Waiting for slip', 'warn'];
+  if (docsOutdated(tx)) return ['Bill outdated', 'err'];
+  if (!fbDone(tx)) return [isOwnFreight(tx) ? 'Bill to issue' : 'Waiting for bill', 'warn'];
+  return ['Complete', 'sent'];
+}
+const TX_STAGES = ['Awaiting invoice', 'Waiting for slip', 'Bill to issue', 'Waiting for bill', 'Bill outdated', 'Complete', 'Delivered'];
+/* still needs something: a slip to record, a transporter's bill to record, or our own bill to (re)print */
+const needsPaper = t => !t.deleted && !t.delivered && has(t.invNo) && (!calc(t).slipDone || !fbDone(t) || docsOutdated(t));
+const liveTx = () => db.tx.filter(t => !t.deleted);
+
+/* =====================================================================
+   Document rendering
+   ===================================================================== */
+function partyBlock(p) {
+  if (!p) return '<i>—</i>';
+  return `<b>${esc(p.name)}</b>${has(p.address) ? '<br><span class="pty">' + esc(p.address) + '</span>' : ''}${has(p.gstin) ? '<br>GSTIN: ' + esc(p.gstin) : ''}${partyState(p) ? '<br>State: ' + esc(STATES[partyState(p)] || '') + ' (' + partyState(p) + ')' : ''}`;
+}
+function docCtx(tx, kind) {
+  const c = calc(tx);
+  const ent = byId(db.freight, tx.freightId);
+  const tpl = normTpl(ent?.tpl, kind);
+  const custom = customVals(tx, kind, tpl);
+  let v;
+  {
+    v = { billNo: tx.fbNo || '(given on print)', billDate: fmtDate(tx.fbDate || tx.invDate || tx.date), lrNo: tx.lrNo, vehicle: tx.vehicle, from: tx.from, to: tx.to, invoiceNo: tx.invNo, invoiceDate: fmtDate(tx.invDate), invoiceValue: has(tx.invNo) || c.total ? '₹ ' + money(c.total) : '', ewbNo: tx.ewbNo, material: c.desc, weight: c.netKg == null ? '—' : (c.netKg / 1000).toFixed(3) + ' MT', rate: c.rateLabel, freight: money(c.freight), total: money(c.fTotal), words: inWords(c.fTotal), bank: ent?.bank, terms: tpl.terms, sign: ent?.name };
+  }
+  const F = tpl.fields;
+  const show = k => !!F.find(f => f.k === k)?.show;
+  const lab = k => F.find(f => f.k === k)?.label || k;
+  return { tx, c, ent, tpl, v, show, lab, custom, kind };
+}
+function infoPairs(d, special) {
+  const pairs = d.tpl.fields.filter(f => f.show && !special.has(f.k) && has(d.v[f.k])).map(f => [f.label, d.v[f.k]]);
+  return pairs.concat(d.custom.filter(x => x.type !== 'amount').map(x => [x.label, x.display]));
+}
+function kvTable(pairs, cols = 2) {
+  let h = '<table>';
+  for (let i = 0; i < pairs.length; i += cols) {
+    h += '<tr>';
+    for (let j = 0; j < cols; j++) { const p = pairs[i + j]; h += p ? `<td class="lbl">${esc(p[0])}</td><td class="b">${esc(p[1])}</td>` : '<td class="lbl"></td><td></td>'; }
+    h += '</tr>';
+  }
+  return h + '</table>';
+}
+function entHeader(ent, tpl, kind) {
+  if (!ent) return '<div class="hd"><div class="nm">—</div></div>';
+  const ids = [has(ent.gstin) ? 'GSTIN: ' + ent.gstin : '', has(ent.pan) ? 'PAN: ' + ent.pan : '', has(ent.phone) ? 'Ph: ' + ent.phone : '', has(ent.email) ? ent.email : ''].filter(Boolean).join('  |  ');
+  return `<div class="hd"><div class="nm">${esc(ent.name)}</div>${has(ent.address) ? `<div class="ad">${esc(ent.address)}</div>` : ''}${ids ? `<div class="ad">${esc(ids)}</div>` : ''}${has(tpl.header) ? `<div class="ad">${esc(tpl.header)}</div>` : ''}</div>`;
+}
+function renderFB(d) {
+  const { ent, tpl, v, show, lab, c } = d;
+  const paper = 'p-' + tpl.paper;
+  const info = infoPairs(d, FB_SPECIAL);
+  const meta = ['billNo', 'billDate', 'lrNo'].filter(k => show(k) && has(v[k])).map(k => `<div>${esc(lab(k))}: <b>${esc(v[k])}</b></div>`).join('');
+  const parties = [['billTo', c.billTo], ['consignor', c.client], ['consignee', c.buyer]].filter(([k]) => show(k));
+  // charges
+  const amtRows = [];
+  const desc = show('material') ? esc(v.material) + (has(c.hsn) ? ' (HSN ' + esc(c.hsn) + ')' : '') + (has(v.from) || has(v.to) ? '<br><span style="font-size:10.5px">Freight from ' + esc(v.from || '—') + ' to ' + esc(v.to || '—') + '</span>' : '') : 'Freight charges';
+  amtRows.push(`<tr><td>${desc}</td>${show('weight') ? `<td class="r">${esc(v.weight)}</td>` : ''}${show('rate') ? `<td class="r">${esc(v.rate)}</td>` : ''}<td class="r">${show('freight') ? money(c.freight) : ''}</td></tr>`);
+  const span = 1 + (show('weight') ? 1 : 0) + (show('rate') ? 1 : 0);
+  const line = (label, amt, b) => `<tr><td colspan="${span}" class="r ${b ? 'b' : ''}">${esc(label)}</td><td class="r ${b ? 'b' : ''}">${amt}</td></tr>`;
+  c.other.forEach(o => amtRows.push(line(o.label, money(o.amt))));
+  if (show('tax')) {
+    if (c.fTax) {
+      if (c.other.length || true) amtRows.push(line('Taxable value', money(c.fTaxable)));
+      if (c.fInter) amtRows.push(line(`IGST @ ${c.fRate}%`, money(c.fIgst)));
+      else { amtRows.push(line(`CGST @ ${c.fRate / 2}%`, money(c.fCgst))); amtRows.push(line(`SGST @ ${c.fRate / 2}%`, money(c.fSgst))); }
+    } else if (c.rcm) amtRows.push(`<tr><td colspan="${span + 1}" style="font-size:10.5px">GST${c.fcGstRate ? ' @ ' + c.fcGstRate + '%' : ''} payable by the recipient under reverse charge (RCM).</td></tr>`);
+  }
+  if (c.fRound) amtRows.push(line('Round off', money(c.fRound)));
+  if (show('total')) amtRows.push(line(lab('total'), '₹ ' + money(c.fTotal), true));
+  const bottom = `<table><tr>${show('bank') && has(v.bank) ? `<td style="width:38%"><b>${esc(lab('bank'))}</b><div class="pty">${esc(v.bank)}</div></td>` : ''}${show('terms') && has(v.terms) ? `<td><b>${esc(lab('terms'))}</b><div class="pty">${esc(v.terms)}</div></td>` : ''}${show('sign') ? `<td style="width:32%;height:70px" class="c">For <b>${esc(v.sign || '')}</b><div style="margin-top:38px">${esc(lab('sign'))}</div></td>` : ''}</tr></table>`;
+  const chargesHead = `<tr><th>${show('material') ? esc(lab('material')) : 'Particulars'}</th>${show('weight') ? `<th class="r">${esc(lab('weight'))}</th>` : ''}${show('rate') ? `<th class="r">${esc(lab('rate'))}</th>` : ''}<th class="r">Amount (₹)</th></tr>`;
+  const words = show('words') ? `<div style="border:1px solid #000;border-top:0;padding:5px 6px">${esc(lab('words'))}: <b>${esc(v.words)}</b></div>` : '';
+  if (tpl.layout === 'compact') {
+    const pairs = parties.map(([k, p]) => [lab(k), p ? p.name + (has(p.gstin) ? ' (' + p.gstin + ')' : '') : '—']);
+    return `<div class="doc ${paper}">${entHeader(ent, tpl, 'fb')}<div class="ttl">${esc(tpl.title)}</div><div class="gap"></div>
+      ${kvTable(['billNo', 'billDate', 'lrNo'].filter(k => show(k) && has(v[k])).map(k => [lab(k), v[k]]).concat(pairs, info), 2)}<div class="gap"></div>
+      <table>${chargesHead}${amtRows.join('')}</table>${words}<div class="gap"></div>${bottom}${has(tpl.footer) ? `<div class="ftn">${esc(tpl.footer)}</div>` : ''}</div>`;
+  }
+  const billToCell = parties.find(([k]) => k === 'billTo');
+  const others = parties.filter(([k]) => k !== 'billTo');
+  return `<div class="doc ${paper}">${entHeader(ent, tpl, 'fb')}<div class="ttl">${esc(tpl.title)}</div>
+    <table><tr><td style="width:60%">${billToCell ? `<div style="font-size:10.5px">${esc(lab('billTo'))}</div>${partyBlock(billToCell[1])}` : ''}</td><td>${meta}</td></tr></table>
+    ${others.length ? `<table><tr>${others.map(([k, p]) => `<td style="width:${100 / others.length}%"><div style="font-size:10.5px">${esc(lab(k))}</div>${partyBlock(p)}</td>`).join('')}</tr></table>` : ''}
+    ${info.length ? kvTable(info, 3) : ''}<div class="gap"></div>
+    <table>${chargesHead}${amtRows.join('')}</table>${words}<div class="gap"></div>${bottom}${has(tpl.footer) ? `<div class="ftn">${esc(tpl.footer)}</div>` : ''}</div>`;
+}
+function renderDoc(tx) { return renderFB(docCtx(tx, 'fb')); }
+
+function printHTML(html, title) {
+  const pa = $('#printArea'); pa.innerHTML = html;
+  const old = document.title; document.title = title.replace(/[\\/:*?"<>|]+/g, '-');
+  setTimeout(() => { window.print(); document.title = old; setTimeout(() => { pa.innerHTML = ''; }, 500); }, 60);
+}
+function nextNumber(ent, date) {
+  const n = Math.max(1, Math.floor(num(ent.next) || 1)); ent.next = n + 1;
+  return String(ent.prefix || '').replace(/\{FY\}/g, fyOf(date)) + String(n).padStart(Math.max(1, Math.floor(num(ent.pad) || 3)), '0');
+}
+// Print freight bills of YOUR OWN transport business (numbered on first print, number reused after).
+// Other transporters' bills and all weighment slips are recorded, never printed here.
+async function printOwnBills(txs) {
+  let html = '', done = 0;
+  const skipped = [];
+  const own = byId(db.freight, db.settings.ownFreightId);
+  if (!own) { openModal({ title: 'No transport business of your own set', html: '<p class="muted">Freight bills are printed only for a transport business you own and run. Choose it in <b>Settings</b>. Bills from other transporters are recorded on each transaction from the bill they send you.</p>', buttons: [{ label: 'OK', cls: 'pri' }] }); return; }
+  for (const tx of txs) {
+    if (!isOwnFreight(tx)) { skipped.push(`${tx.code}: carried by ${calc(tx).fc?.name || 'no transporter'} — record their bill instead`); continue; }
+    const errs = checkTx(tx).filter(i => i.sev === 'error');
+    if (errs.length) { skipped.push(`${tx.code}: ${errs.map(e => e.msg).join('; ')}`); continue; }
+    tx.docs = tx.docs || {};
+    if (!has(tx.fbNo)) tx.fbNo = nextNumber(own, tx.fbDate || tx.invDate || tx.date);
+    if (!tx.docs.fb) (tx.history = tx.history || []).push({ at: Date.now(), msg: 'Freight bill ' + tx.fbNo + ' printed' });
+    tx.docs.fb = { at: Date.now(), no: tx.fbNo };
+    html += renderDoc(tx); done++;
+  }
+  if (done) {
+    log(`Printed ${done} freight bill(s) for ${txs.length === 1 ? txs[0].code : txs.length + ' transactions'}`);
+    save(); render();
+    const title = txs.length === 1 ? `${txs[0].code} - ${calc(txs[0]).buyer?.name || ''} - Freight Bill` : `Freight Bills - ${done} - ${todayISO()}`;
+    printHTML(html, title);
+  }
+  if (skipped.length) {
+    openModal({ title: done ? 'Some bills were skipped' : 'Nothing printed', html: `<p class="muted">Fix these and print again. Use <b>Checks</b> to see all issues.</p><ul class="issues">${skipped.map(s => `<li class="error">${esc(s)}</li>`).join('')}</ul>`, buttons: [{ label: 'OK', cls: 'pri' }] });
+  }
+}
+
+/* =====================================================================
+   UI infrastructure: toast, modal, forms
+   ===================================================================== */
+function toast(msg, kind = 'ok') {
+  const el = document.createElement('div'); el.textContent = msg; if (kind !== 'ok') el.className = kind;
+  $('#toast').appendChild(el); setTimeout(() => el.remove(), kind === 'err' ? 6000 : 3200);
+}
+function openModal({ title, html, size = '', buttons = [] }) {
+  const ov = document.createElement('div'); ov.className = 'ov';
+  ov.innerHTML = `<div class="mdl ${size}" role="dialog" aria-modal="true"><div class="mh"><h3>${esc(title)}</h3><button class="x" aria-label="Close">×</button></div><div class="mb">${html}</div><div class="mf"></div></div>`;
+  const close = () => ov.remove();
+  ov.querySelector('.x').onclick = close;
+  const mf = ov.querySelector('.mf');
+  if (!buttons.length) mf.remove();
+  buttons.forEach(b => {
+    const btn = document.createElement('button'); btn.className = 'btn ' + (b.cls || ''); btn.textContent = b.label;
+    btn.onclick = async () => { if (b.onClick) { const keep = await b.onClick(close, ov); if (keep === false) return; } close(); };
+    if (b.left) { btn.style.marginRight = 'auto'; mf.prepend(btn); } else mf.appendChild(btn);
+  });
+  $('#modalRoot').appendChild(ov);
+  const first = ov.querySelector('.mb input:not([readonly]), .mb select, .mb textarea'); if (first) setTimeout(() => first.focus(), 30);
+  return { el: ov, body: ov.querySelector('.mb'), close };
+}
+function confirmBox(msg, okLabel = 'OK', danger = false) {
+  return new Promise(res => {
+    openModal({ title: 'Please confirm', html: `<p style="margin:0">${esc(msg)}</p>`, buttons: [{ label: 'Cancel', onClick: () => res(false) }, { label: okLabel, cls: danger ? 'danger' : 'pri', onClick: () => res(true) }] });
+  });
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { const ovs = $$('#modalRoot .ov'); if (ovs.length) ovs[ovs.length - 1].querySelector('.x').click(); } });
+
+function optHTML(opts, val) {
+  return opts.map(o => { const [ov, ol] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(ov)}" ${String(ov) === String(val ?? '') ? 'selected' : ''}>${esc(ol)}</option>`; }).join('');
+}
+const listOpts = (list, blank = '— select —', label = x => x.name) => [['', blank], ...list.map(x => [x.id, label(x)])];
+function fieldInput(f, val) {
+  const v = val ?? '';
+  const attrs = `name="${f.k}" ${f.ph ? `placeholder="${esc(f.ph)}"` : ''} ${f.ro ? 'readonly' : ''} ${f.upper ? 'data-upper="1"' : ''}`;
+  switch (f.type) {
+    case 'select': return `<select ${attrs}>${optHTML(typeof f.options === 'function' ? f.options() : f.options, v)}</select>`;
+    case 'textarea': return `<textarea ${attrs} rows="${f.rows || 2}">${esc(v)}</textarea>`;
+    case 'check': return `<input type="checkbox" ${attrs} ${v ? 'checked' : ''}>`;
+    case 'number': return `<input type="number" step="any" ${attrs} value="${esc(v)}">`;
+    default: return `<input type="${f.type || 'text'}" ${attrs} value="${esc(v)}" ${f.list ? `list="${f.list}"` : ''} autocomplete="off">`;
+  }
+}
+function formHTML(fields, obj) {
+  return '<div class="form">' + fields.map(f => f.section !== undefined
+    ? `<div class="fsec">${esc(f.section)}${f.note ? `<small>${esc(f.note)}</small>` : ''}</div>`
+    : `<label class="fld ${f.wide ? 'wide' : ''} ${f.type === 'check' ? 'chk' : ''}">${f.type === 'check' ? fieldInput(f, obj[f.k]) + `<span>${esc(f.label)}</span>` : `<span>${esc(f.label)}${f.req ? ' <b>*</b>' : ''}</span>${fieldInput(f, obj[f.k])}`}${f.help ? `<small>${esc(f.help)}</small>` : ''}</label>`).join('') + '</div>';
+}
+function readForm(root) {
+  const o = {};
+  $$('[name]', root).forEach(el => { o[el.name] = el.type === 'checkbox' ? el.checked : (el.dataset.upper ? el.value.toUpperCase().trim() : el.value.trim()); });
+  return o;
+}
+function vehicleDatalist() { return `<datalist id="vehList">${db.vehicles.map(v => `<option value="${esc(v.number)}">${esc(v.owner || '')}</option>`).join('')}</datalist>`; }
+
+// ---------- Excel / CSV ----------
+let xlsxPromise = null;
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (!xlsxPromise) xlsxPromise = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = () => res(window.XLSX);
+    s.onerror = () => { xlsxPromise = null; rej(new Error('Excel library could not load (needs internet)')); };
+    document.head.appendChild(s);
+  });
+  return xlsxPromise;
+}
+function download(name, text, type = 'text/plain') {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+async function exportRows(name, rows) {
+  if (!rows.length) return toast('Nothing to export', 'warn');
+  try {
+    const X = await loadXLSX(); const ws = X.utils.json_to_sheet(rows); const wb = X.utils.book_new();
+    ws['!cols'] = Object.keys(rows[0]).map(k => ({ wch: Math.min(40, Math.max(10, k.length + 2, ...rows.slice(0, 50).map(r => String(r[k] ?? '').length + 1))) }));
+    X.utils.book_append_sheet(wb, ws, 'Data'); X.writeFile(wb, name + '.xlsx');
+  } catch (e) {
+    const keys = Object.keys(rows[0]);
+    const csv = [keys, ...rows.map(r => keys.map(k => r[k]))].map(r => r.map(v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',')).join('\n');
+    download(name + '.csv', '﻿' + csv, 'text/csv'); toast(e.message + ' — saved as CSV instead', 'warn');
+  }
+}
+async function readSheetFile(file) {
+  if (/\.csv$/i.test(file.name)) {
+    const lines = (await file.text()).split(/\r?\n/).filter(l => l.trim());
+    const split = l => { const out = []; let cur = '', q = false; for (let i = 0; i < l.length; i++) { const ch = l[i]; if (q) { if (ch === '"' && l[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; } else if (ch === '"') q = true; else if (ch === ',') { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return out; };
+    const head = split(lines[0]).map(h => h.replace(/^﻿/, '').trim());
+    return lines.slice(1).map(l => { const c = split(l); const o = {}; head.forEach((h, i) => o[h] = c[i] ?? ''); return o; });
+  }
+  const X = await loadXLSX();
+  const wb = X.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+  return X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
+}
+function pickFile(accept) {
+  return new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = accept; i.onchange = () => res(i.files[0] || null); i.click(); });
+}
+function toISO(v) {
+  if (!has(v)) return '';
+  const s = String(v).trim();
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s); if (m) return `${m[1]}-${pad2(m[2])}-${pad2(m[3])}`;
+  m = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/.exec(s); if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${pad2(m[2])}-${pad2(m[1])}`; }
+  const d = new Date(s); return isNaN(d) ? s : isoOf(d);
+}
+
+/* =====================================================================
+   Navigation & rendering
+   ===================================================================== */
+const ui = {
+  view: (() => { try { return sessionStorage.getItem('bd.view') || 'dashboard'; } catch (e) { return 'dashboard'; } })(),
+  sumId: null, sumVer: null,
+  tf: { q: '', client: '', stage: '', from: '', to: '', deleted: false },
+  sel: new Set(),
+  rep: { from: fyStartISO(), to: todayISO(), client: '', by: 'client' }
+};
+try { const s = JSON.parse(sessionStorage.getItem('bd.sum') || 'null'); if (s) { ui.sumId = s.id; ui.sumVer = s.v; } } catch (e) { /* ignore */ }
+const NAV = [['dashboard', 'Dashboard'], ['summaries', 'Summaries'], ['transactions', 'Transactions'], ['tally', 'Tally bridge'], ['documents', 'Slips & bills'], ['checks', 'Checks'], ['reports', 'Reports'],
+  ['-', 'Masters'], ['m:clients', 'Sellers'], ['m:buyers', 'Buyers'], ['m:products', 'Products'], ['m:freight', 'Freight companies'], ['m:bridges', 'Weighbridges'], ['m:vehicles', 'Vehicles'],
+  ['-', 'System'], ['settings', 'Settings & backup']];
+function go(v) { ui.view = v; try { sessionStorage.setItem('bd.view', v); } catch (e) { /* ignore */ } render(); window.scrollTo(0, 0); }
+function renderNav() {
+  const live = liveTx();
+  const awaiting = live.filter(t => !has(t.invNo)).length;
+  const docsPend = live.filter(needsPaper).length;
+  const errs = live.filter(t => checkTx(t).some(i => i.sev === 'error')).length + checkMasters().filter(i => i.sev === 'error').length;
+  const sumOpen = db.summaries.filter(s => s.status !== 'agreed').length;
+  const badge = { tally: awaiting, documents: docsPend, checks: errs, summaries: sumOpen };
+  const cur = ui.view === 'summary' ? 'summaries' : ui.view;
+  $('#nav').innerHTML = NAV.map(([k, l]) => k === '-' ? `<div class="grp">${l}</div>` : `<button data-act="go" data-v="${k}" class="${cur === k ? 'on' : ''}"><span>${l}</span>${badge[k] ? `<span class="bdg ${k === 'checks' ? 'err' : ''}">${badge[k]}</span>` : ''}</button>`).join('');
+  $('#bizName').textContent = db.settings.bizName || 'Transactions & documents';
+}
+function setBar(title, actions = '') { $('#pageTitle').textContent = title; $('#barActions').innerHTML = actions; }
+function render() {
+  const v = $('#view'); v.onchange = null; v.oninput = null;
+  renderNav();
+  const [name, arg] = ui.view.split(':');
+  const views = { dashboard: viewDashboard, summaries: viewSummaries, summary: viewSummary, transactions: viewTransactions, tally: viewTally, documents: viewDocuments, checks: viewChecks, reports: viewReports, m: viewMaster, settings: viewSettings };
+  (views[name] || viewDashboard)(arg);
+  updateSaveBadge();
+}
+
+/* =====================================================================
+   Dashboard
+   ===================================================================== */
+function viewDashboard() {
+  setBar('Dashboard', `<button class="btn" data-act="newSummary">+ New summary</button><button class="btn pri" data-act="newTx">+ New transaction</button>`);
+  const live = liveTx();
+  const empty = !db.clients.length && !db.tx.length && !db.summaries.length;
+  const month = todayISO().slice(0, 7);
+  const thisMonth = live.filter(t => (t.invDate || t.date || '').slice(0, 7) === month);
+  const awaiting = live.filter(t => !has(t.invNo));
+  const docsPend = live.filter(needsPaper);
+  const errTx = live.filter(t => checkTx(t).some(i => i.sev === 'error'));
+  const sent = db.summaries.filter(s => s.status === 'sent'), drafts = db.summaries.filter(s => s.status === 'draft'), agreedNoTx = db.summaries.filter(s => s.status === 'agreed' && !s.converted);
+  let h = '';
+  if (empty) {
+    h += `<div class="card"><h3>Welcome to Billing Desk</h3><p class="sub">Everything for one transaction — seller summary, Tally references, the weighment slip details and the freight bill — is entered once and reused. Weighment slips and other transporters' bills are recorded from the real documents; only your own transport business's freight bills are printed here. Data stays in this browser; link a data file in Settings to keep it in your Drive folder.</p>
+      <div class="row"><button class="btn amb" data-act="sample">Try it with sample data</button><button class="btn" data-act="go" data-v="m:clients">Start fresh — add your first seller</button></div>
+      <p class="small muted" style="margin-top:12px">Setup order: Sellers → Buyers → Products → Freight companies → Weighbridges → Vehicles (and, if you run a transport business, choose it in Settings). Then create a Summary for a seller.</p></div>`;
+  }
+  h += `<div class="kpis">
+    <div class="kpi" data-act="go" data-v="summaries"><div class="n">${sent.length}</div><div class="l">Summaries waiting for seller reply</div></div>
+    <div class="kpi" data-act="go" data-v="transactions"><div class="n">${thisMonth.length}</div><div class="l">Transactions this month · ₹${qf(sum(thisMonth, t => calc(t).total), 0)}</div></div>
+    <div class="kpi" data-act="go" data-v="tally"><div class="n">${awaiting.length}</div><div class="l">Waiting for Tally invoice no.</div></div>
+    <div class="kpi" data-act="go" data-v="documents"><div class="n">${docsPend.length}</div><div class="l">Slips & bills pending</div></div>
+    <div class="kpi ${errTx.length ? 'alert' : ''}" data-act="go" data-v="checks"><div class="n">${errTx.length}</div><div class="l">Transactions with errors</div></div>
+  </div>`;
+  const acts = [];
+  agreedNoTx.forEach(s => acts.push(`<tr class="click" data-act="openSummary" data-id="${s.id}"><td><span class="chip agreed">Agreed</span></td><td>${esc(s.no)} · ${esc(byId(db.clients, s.clientId)?.name || '')} — create transactions</td></tr>`));
+  sent.forEach(s => acts.push(`<tr class="click" data-act="openSummary" data-id="${s.id}"><td><span class="chip sent">Sent</span></td><td>${esc(s.no)} · ${esc(byId(db.clients, s.clientId)?.name || '')} — waiting for the seller (v${s.versions.length})</td></tr>`));
+  drafts.forEach(s => acts.push(`<tr class="click" data-act="openSummary" data-id="${s.id}"><td><span class="chip draft">Draft</span></td><td>${esc(s.no)} · ${esc(byId(db.clients, s.clientId)?.name || '')} — finish and send (v${s.versions.length})</td></tr>`));
+  if (awaiting.length) acts.push(`<tr class="click" data-act="go" data-v="tally"><td><span class="chip draft">Tally</span></td><td>${awaiting.length} transaction(s) need invoice / e-way bill numbers from Tally</td></tr>`);
+  if (docsPend.length) acts.push(`<tr class="click" data-act="go" data-v="documents"><td><span class="chip warn">Paper</span></td><td>${docsPend.length} transaction(s) need weighment slip details or a freight bill</td></tr>`);
+  if (errTx.length) acts.push(`<tr class="click" data-act="go" data-v="checks"><td><span class="chip err">Fix</span></td><td>${errTx.length} transaction(s) have errors to fix</td></tr>`);
+  h += `<div class="grid2"><div class="card"><h3>Next actions</h3><p class="sub">What needs doing, in order.</p>${acts.length ? `<div class="tw"><table class="t"><tbody>${acts.join('')}</tbody></table></div>` : '<div class="empty">All caught up.</div>'}</div>
+    <div class="card"><h3>Recent activity</h3><p class="sub">Last changes made in this desk.</p>${db.log.length ? `<div class="hist" style="max-height:320px">${db.log.slice(0, 40).map(l => `<div><span class="muted">${fmtDT(l.at)}</span> — ${esc(l.msg)}</div>`).join('')}</div>` : '<div class="empty">No activity yet.</div>'}</div></div>`;
+  $('#view').innerHTML = h;
+}
+
+/* =====================================================================
+   Summaries (versioned)
+   ===================================================================== */
+const SUM_COLS = [
+  { k: 'date', label: 'Date', type: 'date', w: 130 }, { k: 'buyerId', label: 'Buyer', type: 'buyer', w: 190 }, { k: 'productId', label: 'Product', type: 'product', w: 160 },
+  { k: 'qty', label: 'Qty', type: 'num', w: 80 }, { k: 'rate', label: 'Rate', type: 'num', w: 95 }, { k: 'gst', label: 'GST %', type: 'gst', w: 75 },
+  { k: 'vehicle', label: 'Vehicle', type: 'veh', w: 125 }, { k: 'from', label: 'From', type: 'text', w: 115 }, { k: 'to', label: 'To', type: 'text', w: 115 },
+  { k: 'freightId', label: 'Freight co.', type: 'freight', w: 160 }, { k: 'bridgeId', label: 'Weighbridge', type: 'bridge', w: 160 }, { k: 'note', label: 'Note', type: 'text', w: 150 }];
+const GST_OPTS = ['0', '0.25', '3', '5', '12', '18', '28'];
+function sumColText(col, row) {
+  const v = row[col.k];
+  if (col.type === 'buyer') return byId(db.buyers, v)?.name || '';
+  if (col.type === 'product') return byId(db.products, v)?.name || '';
+  if (col.type === 'freight') return byId(db.freight, v)?.name || '';
+  if (col.type === 'bridge') return byId(db.bridges, v)?.name || '';
+  if (col.type === 'date') return fmtDate(v);
+  return v ?? '';
+}
+function rowTx(s, row) { return { ...row, id: '_row', clientId: s.clientId, unit: byId(db.products, row.productId)?.unit || '' }; }
+function sumTotals(s, ver) { const cs = ver.rows.map(r => calc(rowTx(s, r))); return { n: ver.rows.length, taxable: sum(cs, c => c.taxable), total: sum(cs, c => c.total) }; }
+const SUM_CHIP = { draft: ['Draft', 'draft'], sent: ['Sent to seller', 'sent'], agreed: ['Agreed', 'agreed'] };
+function viewSummaries() {
+  setBar('Summaries', `<button class="btn pri" data-act="newSummary">+ New summary</button>`);
+  const rows = [...db.summaries].sort((a, b) => b.created - a.created);
+  $('#view').innerHTML = `<div class="card"><h3>Seller summaries</h3><p class="sub">Prepare the planned invoices for a seller, send it, record changes as new versions, and turn the agreed version into transactions.</p>
+  ${rows.length ? `<div class="tw"><table class="t"><thead><tr><th>No.</th><th>Seller</th><th>Title</th><th>Version</th><th>Status</th><th class="n">Rows</th><th class="n">Invoice value</th><th>Created</th></tr></thead><tbody>
+  ${rows.map(s => { const ver = s.versions[s.versions.length - 1]; const t = sumTotals(s, ver); const ch = SUM_CHIP[s.status]; return `<tr class="click" data-act="openSummary" data-id="${s.id}"><td><b>${esc(s.no)}</b></td><td>${esc(byId(db.clients, s.clientId)?.name || '—')}</td><td>${esc(s.title)}</td><td>v${ver.v}</td><td><span class="chip ${ch[1]}">${ch[0]}</span>${s.converted ? ' <span class="chip teal">Transactions created</span>' : ''}</td><td class="n">${t.n}</td><td class="n">${money(t.total)}</td><td>${fmtDT(s.created)}</td></tr>`; }).join('')}
+  </tbody></table></div>` : '<div class="empty">No summaries yet. Create one for a seller to begin.</div>'}</div>`;
+}
+function newSummary() {
+  if (!db.clients.length) { toast('Add a seller first', 'warn'); return go('m:clients'); }
+  const now = new Date();
+  const fields = [{ k: 'clientId', label: 'Seller', type: 'select', options: () => listOpts(db.clients), req: 1, wide: 1 }, { k: 'title', label: 'Title', wide: 1, ph: 'e.g. November batch' }];
+  const m = openModal({ title: 'New summary', html: formHTML(fields, { title: now.toLocaleString('en-IN', { month: 'long', year: 'numeric' }) + ' invoices' }), buttons: [{ label: 'Cancel' }, {
+    label: 'Create', cls: 'pri', onClick: () => {
+      const f = readForm(m.body); if (!f.clientId) { toast('Choose a seller', 'warn'); return false; }
+      const s = { id: uid(), no: db.settings.sumPrefix + String(db.settings.sumNext++).padStart(3, '0'), clientId: f.clientId, title: f.title, created: Date.now(), status: 'draft', versions: [{ v: 1, created: Date.now(), rows: [] }] };
+      db.summaries.push(s); log(`Summary ${s.no} created for ${byId(db.clients, f.clientId).name}`); save();
+      openSummary(s.id); addSumRow(s);
+    }
+  }] });
+}
+function openSummary(id) { ui.sumId = id; ui.sumVer = null; try { sessionStorage.setItem('bd.sum', JSON.stringify({ id, v: null })); } catch (e) { /* ignore */ } go('summary'); }
+function newSumRow(s, base = {}) {
+  const client = byId(db.clients, s.clientId);
+  const prod = db.products.length === 1 ? db.products[0] : null;
+  return Object.assign({ rid: uid(), date: todayISO(), buyerId: '', productId: prod?.id || '', qty: '', rate: prod?.rate || '', gst: prod ? String(prod.gst ?? '') : '', vehicle: '', from: client?.place || '', to: '', freightId: client?.freightId || '', bridgeId: client?.bridgeId || '', note: '' }, base);
+}
+function addSumRow(s, base) { const ver = s.versions[s.versions.length - 1]; ver.rows.push(newSumRow(s, base)); save(); render(); }
+function viewSummary() {
+  const s = byId(db.summaries, ui.sumId);
+  if (!s) { ui.view = 'summaries'; return viewSummaries(); }
+  const client = byId(db.clients, s.clientId);
+  const vi = ui.sumVer != null && s.versions[ui.sumVer] ? ui.sumVer : s.versions.length - 1;
+  const ver = s.versions[vi], prev = s.versions[vi - 1];
+  const latest = vi === s.versions.length - 1;
+  const editable = latest && s.status === 'draft';
+  const ch = SUM_CHIP[s.status];
+  setBar(`${s.no} · ${client?.name || ''}`, `<button class="btn" data-act="go" data-v="summaries">← All summaries</button>`);
+  let actions = `<button class="btn" data-act="sumPrint">Print for seller</button><button class="btn" data-act="sumExport">Export Excel</button>`;
+  if (latest && s.status === 'draft') actions += `<button class="btn" data-act="sumAddRow">+ Add row</button><span class="spacer"></span>${s.versions.length > 1 ? '<button class="btn danger" data-act="sumDiscard">Discard this version</button>' : '<button class="btn danger" data-act="sumDelete">Delete summary</button>'}<button class="btn" data-act="sumAgreed">Seller agreed</button><button class="btn pri" data-act="sumSent">Mark as sent to seller</button>`;
+  else if (latest && s.status === 'sent') actions += `<span class="spacer"></span><button class="btn amb" data-act="sumNewVer">Seller asked for changes → new version</button><button class="btn pri" data-act="sumAgreed">Seller agreed</button>`;
+  else if (latest && s.status === 'agreed' && !s.converted) actions += `<span class="spacer"></span><button class="btn danger" data-act="sumReopen">Reopen</button><button class="btn pri" data-act="sumCreateTx">Create ${ver.rows.length} transaction(s)</button>`;
+  else if (s.converted) actions += `<span class="spacer"></span><button class="btn" data-act="sumShowTx">View its transactions</button>`;
+  // diff
+  const prevMap = prev ? new Map(prev.rows.map(r => [r.rid, r])) : null;
+  const removed = prev ? prev.rows.filter(r => !ver.rows.find(x => x.rid === r.rid)) : [];
+  let nAdded = 0, nChanged = 0;
+  const cell = (col, r) => {
+    const p = prevMap?.get(r.rid);
+    const changed = p && String(p[col.k] ?? '') !== String(r[col.k] ?? '');
+    const title = changed ? ` title="Was: ${esc(sumColText(col, p) || '(blank)')}"` : '';
+    if (!editable) return `<td class="ro ${changed ? 'chg' : ''}"${title}>${esc(sumColText(col, r))}</td>`;
+    const a = `data-sr="${r.rid}" data-k="${col.k}"`;
+    let inp;
+    switch (col.type) {
+      case 'buyer': inp = `<select ${a}>${optHTML(listOpts(db.buyers, '—'), r[col.k])}</select>`; break;
+      case 'product': inp = `<select ${a}>${optHTML(listOpts(db.products, '—'), r[col.k])}</select>`; break;
+      case 'freight': inp = `<select ${a}>${optHTML(listOpts(db.freight, '—'), r[col.k])}</select>`; break;
+      case 'bridge': inp = `<select ${a}>${optHTML(listOpts(db.bridges, '—'), r[col.k])}</select>`; break;
+      case 'gst': inp = `<select ${a}>${optHTML([['', '—'], ...GST_OPTS], r[col.k])}</select>`; break;
+      case 'veh': inp = `<input ${a} value="${esc(r[col.k])}" list="vehList" data-upper="1">`; break;
+      case 'num': inp = `<input ${a} value="${esc(r[col.k])}" inputmode="decimal" style="text-align:right">`; break;
+      case 'date': inp = `<input type="date" ${a} value="${esc(r[col.k])}">`; break;
+      default: inp = `<input ${a} value="${esc(r[col.k])}">`;
+    }
+    return `<td class="${changed ? 'chg' : ''}"${title}>${inp}</td>`;
+  };
+  const body = ver.rows.map((r, i) => {
+    const c = calc(rowTx(s, r));
+    const isNew = prev && !prevMap.has(r.rid); if (isNew) nAdded++;
+    if (prev && !isNew && SUM_COLS.some(col => String(prevMap.get(r.rid)[col.k] ?? '') !== String(r[col.k] ?? ''))) nChanged++;
+    return `<tr class="${isNew ? 'added' : ''}"><td class="ro muted">${i + 1}</td>${SUM_COLS.map(col => col.k === 'qty' ? cell(col, r).replace('</td>', `</td><td class="ro muted small">${esc(c.unit)}</td>`) : cell(col, r)).join('')}
+      <td class="ro n">${money(c.taxable)}</td><td class="ro n">${money(c.tax)}</td><td class="ro n"><b>${money(c.total)}</b></td>
+      ${editable ? `<td class="ro" style="white-space:nowrap"><button class="btn sm" data-act="sumDupRow" data-rid="${r.rid}" title="Duplicate row">⧉</button> <button class="btn sm danger" data-act="sumDelRow" data-rid="${r.rid}" title="Remove row">✕</button></td>` : ''}</tr>`;
+  }).join('');
+  const t = sumTotals(s, ver);
+  const head = `<tr><th>#</th>${SUM_COLS.map(c => `<th style="min-width:${c.w}px">${c.label}</th>${c.k === 'qty' ? '<th>Unit</th>' : ''}`).join('')}<th class="n">Taxable</th><th class="n">GST</th><th class="n">Invoice value</th>${editable ? '<th></th>' : ''}</tr>`;
+  const vtabs = s.versions.map((x, i) => `<button class="btn sm ${i === vi ? 'pri' : ''}" data-act="sumVer" data-i="${i}">v${x.v}${x.sentOn ? ' · sent ' + fmtDate(isoOf(new Date(x.sentOn))) : ''}${s.agreedV === x.v ? ' · agreed' : ''}</button>`).join('');
+  $('#view').innerHTML = `${vehicleDatalist()}
+  <div class="card"><div class="row"><div><h3 style="margin:0">${esc(s.title || s.no)}</h3><div class="muted small">${esc(client?.name || '')} ${client?.gstin ? '· ' + esc(client.gstin) : ''}</div></div><span class="spacer"></span><span class="chip ${ch[1]}">${ch[0]}</span>${s.converted ? '<span class="chip teal">Transactions created</span>' : ''}</div>
+  <div class="row" style="margin-top:12px"><span class="small muted">Versions:</span>${vtabs}</div></div>
+  ${!latest ? `<div class="note info">You're viewing an older version (read-only). <button class="btn link" data-act="sumVer" data-i="${s.versions.length - 1}">Go to latest</button></div>` : ''}
+  ${prev ? `<div class="note ${nAdded + nChanged + removed.length ? 'warn' : 'ok'}">Compared with v${prev.v}: <b>${nAdded}</b> added, <b>${nChanged}</b> changed, <b>${removed.length}</b> removed. ${nChanged ? 'Changed cells are highlighted — hover one to see the old value.' : ''}</div>` : ''}
+  ${s.status === 'sent' && latest ? '<div class="note info">This version is locked because it was sent. If the seller wants changes, start a new version — the old one stays on record.</div>' : ''}
+  <div class="card"><div class="row" style="margin-bottom:10px">${actions}</div>
+  <div class="tw"><table class="t ${editable ? 'ed' : ''}"><thead>${head}</thead><tbody>${body || `<tr><td colspan="${SUM_COLS.length + 6}" class="empty">No rows yet.${editable ? ' Click “+ Add row”.' : ''}</td></tr>`}</tbody>
+  <tfoot><tr><td></td><td colspan="${SUM_COLS.length + 1}">${t.n} invoice(s)</td><td class="n">${money(t.taxable)}</td><td class="n">${money(t.total - t.taxable)}</td><td class="n">${money(t.total)}</td>${editable ? '<td></td>' : ''}</tr></tfoot></table></div>
+  ${removed.length ? `<h4 style="margin:14px 0 6px">Removed since v${prev.v}</h4><div class="tw"><table class="t"><tbody>${removed.map(r => `<tr class="dead"><td>${esc(sumColText(SUM_COLS[1], r))}</td><td>${esc(sumColText(SUM_COLS[2], r))}</td><td>${esc(r.qty)}</td><td>${esc(r.rate)}</td><td>${esc(r.vehicle)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+  </div>`;
+  if (editable) $('#view').onchange = e => {
+    const el = e.target; if (!el.dataset.sr) return;
+    const row = ver.rows.find(r => r.rid === el.dataset.sr); if (!row) return;
+    const k = el.dataset.k; let val = el.dataset.upper ? el.value.toUpperCase().trim() : el.value.trim();
+    row[k] = val;
+    if (k === 'productId') { const p = byId(db.products, val); if (p) { if (has(p.rate)) row.rate = String(p.rate); row.gst = String(p.gst ?? ''); } }
+    if (k === 'buyerId') { const b = byId(db.buyers, val); if (b && has(b.place)) row.to = b.place; }
+    if (k === 'vehicle') { const v = findVehicle(val); if (v && v.freightId && !row.freightId) row.freightId = v.freightId; }
+    save(); render();
+  };
+}
+function sumPrintHTML(s, ver) {
+  const client = byId(db.clients, s.clientId);
+  const rows = ver.rows.map((r, i) => { const c = calc(rowTx(s, r)); return `<tr><td>${i + 1}</td><td>${fmtDate(r.date)}</td><td>${esc(c.buyer?.name || '')}<br><span style="font-size:10px">${esc(c.buyer?.gstin || '')}</span></td><td>${esc(c.desc)}</td><td class="r">${qf(c.qty)} ${esc(c.unit)}</td><td class="r">${money(c.rate)}</td><td class="r">${money(c.taxable)}</td><td class="r">${c.gst}%</td><td class="r">${money(c.tax)}</td><td class="r b">${money(c.total)}</td><td>${esc(r.vehicle)}</td><td>${esc(r.from)} → ${esc(r.to)}</td></tr>`; }).join('');
+  const t = sumTotals(s, ver);
+  return `<div class="doc land"><div class="hd"><div class="nm">${esc(db.settings.bizName || 'Invoice Summary')}</div><div class="ad">Summary ${esc(s.no)} · Version ${ver.v} · ${fmtDate(todayISO())}</div></div><div class="ttl">PROPOSED INVOICES — ${esc(client?.name || '')}</div><div class="gap"></div>
+  <table><tr><th>#</th><th>Date</th><th>Buyer</th><th>Goods</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Taxable</th><th class="r">GST</th><th class="r">Tax</th><th class="r">Invoice value</th><th>Vehicle</th><th>Route</th></tr>${rows}
+  <tr><td colspan="6" class="b">Total (${t.n})</td><td class="r b">${money(t.taxable)}</td><td></td><td class="r b">${money(t.total - t.taxable)}</td><td class="r b">${money(t.total)}</td><td colspan="2"></td></tr></table>
+  <div class="ftn">${esc(s.title || '')}</div><div class="ft"><span>Please confirm the above to proceed.</span><span>Approved by seller: ____________________</span></div></div>`;
+}
+function createTxFromSummary(s) {
+  const ver = s.versions.find(v => v.v === s.agreedV) || s.versions[s.versions.length - 1];
+  const created = [];
+  for (const r of ver.rows) {
+    const prod = byId(db.products, r.productId);
+    const t = newTx({ clientId: s.clientId, buyerId: r.buyerId, productId: r.productId, unit: prod?.unit || '', qty: r.qty, rate: r.rate, gst: r.gst, vehicle: r.vehicle, from: r.from, to: r.to, freightId: r.freightId, bridgeId: r.bridgeId, date: r.date || todayISO(), notes: r.note, summaryId: s.id, rowId: r.rid });
+    db.tx.push(t); created.push(t);
+  }
+  s.converted = true; s.txIds = created.map(t => t.id);
+  log(`${created.length} transaction(s) created from ${s.no} v${ver.v}`); save();
+  toast(`${created.length} transaction(s) created`);
+  ui.tf = { q: s.no, client: '', stage: '', from: '', to: '', deleted: false };
+  go('transactions');
+}
+
+/* =====================================================================
+   Transactions
+   ===================================================================== */
+function newTx(o = {}) {
+  const t = Object.assign({
+    id: uid(), code: db.settings.txPrefix + String(db.settings.txNext++).padStart(4, '0'), created: Date.now(), updated: Date.now(), date: todayISO(),
+    clientId: '', buyerId: '', productId: '', desc: '', hsn: '', qty: '', unit: '', rate: '', gst: '', vehicle: '', from: '', to: '', km: '',
+    invNo: '', invDate: '', ewbNo: '', ewbDate: '', freightId: '', freightBasis: '', freightRate: '', freightAmt: '', fbTo: '', lrNo: '', fbDate: '',
+    bridgeId: '', wsDate: '', slipNo: '', grossWt: '', grossTime: '', tareWt: '', tareTime: '', fbNo: '', fbAmt: '', extra: { ws: {}, fb: {} }, docs: {}, delivered: false, notes: '', summaryId: '', rowId: '', history: []
+  }, o);
+  t.history.push({ at: Date.now(), msg: 'Created' + (o.summaryId ? ' from ' + (byId(db.summaries, o.summaryId)?.no || 'summary') : '') });
+  return t;
+}
+function txSearchText(t) { const c = calc(t); return [t.code, t.invNo, t.ewbNo, t.vehicle, t.slipNo, t.fbNo, t.lrNo, c.client?.name, c.buyer?.name, c.client?.gstin, c.buyer?.gstin, c.desc, t.from, t.to, byId(db.summaries, t.summaryId)?.no].join(' ').toLowerCase(); }
+function filteredTx() {
+  const f = ui.tf, q = f.q.toLowerCase().trim();
+  return db.tx.filter(t => (f.deleted ? t.deleted : !t.deleted)
+    && (!f.client || t.clientId === f.client)
+    && (!f.stage || txStage(t)[0] === f.stage)
+    && (!f.from || (t.invDate || t.date) >= f.from) && (!f.to || (t.invDate || t.date) <= f.to)
+    && (!q || txSearchText(t).includes(q))).sort((a, b) => (b.invDate || b.date).localeCompare(a.invDate || a.date) || b.created - a.created);
+}
+function viewTransactions() {
+  setBar('Transactions', `<button class="btn pri" data-act="newTx">+ New transaction</button>`);
+  const list = filteredTx();
+  ui.sel = new Set([...ui.sel].filter(id => list.find(t => t.id === id)));
+  const f = ui.tf;
+  const stages = TX_STAGES;
+  const selN = ui.sel.size;
+  $('#view').innerHTML = `<div class="filters">
+    <input class="inp" id="tfQ" placeholder="Search invoice, vehicle, GSTIN, buyer, summary…" value="${esc(f.q)}" style="min-width:260px;flex:1">
+    <select class="inp" id="tfClient">${optHTML(listOpts(db.clients, 'All sellers'), f.client)}</select>
+    <select class="inp" id="tfStage">${optHTML([['', 'All stages'], ...stages], f.stage)}</select>
+    <input class="inp" type="date" id="tfFrom" value="${esc(f.from)}" title="From date"><input class="inp" type="date" id="tfTo" value="${esc(f.to)}" title="To date">
+    <label class="small"><input type="checkbox" id="tfDel" ${f.deleted ? 'checked' : ''}> Deleted</label>
+    ${f.q || f.client || f.stage || f.from || f.to || f.deleted ? '<button class="btn sm link" data-act="tfClear">Clear</button>' : ''}</div>
+  <div class="card" style="padding:12px 14px"><div class="row" style="margin-bottom:10px"><b>${list.length}</b> <span class="muted">transaction(s)</span><span class="spacer"></span>
+    <span class="small muted">${selN ? selN + ' selected' : 'Select rows for bulk actions'}</span>
+    ${db.settings.ownFreightId ? `<button class="btn sm" data-act="bulkPrint" ${selN ? '' : 'disabled'}>Print our freight bills</button>` : ''}
+    <button class="btn sm" data-act="bulkDelivered" ${selN ? '' : 'disabled'}>Mark delivered</button>
+    <button class="btn sm" data-act="bulkExport">Export ${selN ? 'selected' : 'list'}</button></div>
+  ${list.length ? `<div class="tw"><table class="t"><thead><tr><th><input type="checkbox" id="selAll" ${selN && selN === list.length ? 'checked' : ''}></th><th>ID</th><th>Date</th><th>Seller</th><th>Buyer</th><th>Goods</th><th class="n">Qty</th><th class="n">Invoice value</th><th>Vehicle</th><th>Invoice no.</th><th>Slip</th><th>Freight bill</th><th>Stage</th><th></th></tr></thead><tbody>
+  ${list.map(t => {
+    const c = calc(t), st = txStage(t), iss = checkTx(t), ne = iss.filter(i => i.sev === 'error').length;
+    return `<tr class="click" data-act="editTx" data-id="${t.id}"><td data-stop="1"><input type="checkbox" data-sel="${t.id}" ${ui.sel.has(t.id) ? 'checked' : ''}></td><td><b>${esc(t.code)}</b>${ne ? ` <span class="chip err" title="${esc(iss.filter(i => i.sev === 'error').map(i => i.msg).join('\n'))}">${ne}!</span>` : ''}</td><td style="white-space:nowrap">${fmtDate(t.invDate || t.date)}</td><td>${esc(c.client?.name || '—')}</td><td>${esc(c.buyer?.name || '—')}</td><td>${esc(c.desc)}</td><td class="n">${qf(c.qty)} ${esc(c.unit)}</td><td class="n">${money(c.total)}</td><td>${esc(t.vehicle)}</td><td>${esc(t.invNo) || '<span class="muted">—</span>'}</td><td>${c.slipDone ? '✓ ' + esc(t.slipNo) : '<span class="muted">—</span>'}</td><td>${fbDone(t) && has(t.fbNo) ? '✓ ' + esc(t.fbNo) : '<span class="muted">—</span>'}</td><td><span class="chip ${st[1]}">${st[0]}</span></td>
+    <td data-stop="1" style="white-space:nowrap">${t.deleted ? `<button class="btn sm" data-act="txRestore" data-id="${t.id}">Restore</button>` : (c.own ? `<button class="btn sm" data-act="printTx" data-id="${t.id}" title="Print our freight bill">Print bill</button>` : '')}</td></tr>`;
+  }).join('')}</tbody></table></div>` : `<div class="empty">${db.tx.length ? 'No transactions match these filters.' : 'No transactions yet. Create them from an agreed summary, or add one directly.'}</div>`}</div>`;
+  const v = $('#view');
+  let qt; $('#tfQ').oninput = e => { clearTimeout(qt); qt = setTimeout(() => { ui.tf.q = e.target.value; const pos = e.target.selectionStart; render(); const q = $('#tfQ'); q.focus(); q.setSelectionRange(pos, pos); }, 250); };
+  v.onchange = e => {
+    const el = e.target;
+    if (el.id === 'tfClient') ui.tf.client = el.value; else if (el.id === 'tfStage') ui.tf.stage = el.value; else if (el.id === 'tfFrom') ui.tf.from = el.value; else if (el.id === 'tfTo') ui.tf.to = el.value; else if (el.id === 'tfDel') ui.tf.deleted = el.checked;
+    else if (el.id === 'selAll') { ui.sel = el.checked ? new Set(list.map(t => t.id)) : new Set(); }
+    else if (el.dataset.sel) { el.checked ? ui.sel.add(el.dataset.sel) : ui.sel.delete(el.dataset.sel); }
+    else return;
+    render();
+  };
+}
+const TX_LABELS = { date: 'Date', clientId: 'Seller', buyerId: 'Buyer', productId: 'Product', desc: 'Description', hsn: 'HSN', qty: 'Quantity', unit: 'Unit', rate: 'Rate', gst: 'GST %', vehicle: 'Vehicle', from: 'From', to: 'To', km: 'Distance', invNo: 'Invoice no.', invDate: 'Invoice date', ewbNo: 'E-way bill no.', ewbDate: 'E-way bill date', freightId: 'Freight company', freightBasis: 'Freight basis', freightRate: 'Freight rate', freightAmt: 'Freight amount', fbTo: 'Freight billed to', lrNo: 'LR no.', fbDate: 'Freight bill date', fbAmt: 'Bill amount', bridgeId: 'Weighbridge', wsDate: 'Weighment date', slipNo: 'Slip no.', grossWt: 'Gross weight', grossTime: 'Gross time', tareWt: 'Tare weight', tareTime: 'Tare time', notes: 'Notes', delivered: 'Delivered', fbNo: 'Freight bill no.' };
+function txFields(t) {
+  const fc = byId(db.freight, t.freightId), prod = byId(db.products, t.productId);
+  const own = !!fc && fc.id === db.settings.ownFreightId;
+  const freight = !fc ? [] : own ? [
+    { k: 'fbTo', label: 'Freight billed to', type: 'select', options: [['', 'Default (' + ((fc?.billTo || 'client') === 'buyer' ? 'buyer' : 'seller') + ')'], ['client', 'Seller (consignor)'], ['buyer', 'Buyer (consignee)']] },
+    { k: 'freightBasis', label: 'Freight basis', type: 'select', options: [['', 'Default (' + (BASIS[fc?.basis || 'mt']) + ')'], ...Object.entries(BASIS)] },
+    { k: 'freightRate', label: 'Freight rate', type: 'number', ph: 'Default ' + (fc.rate ?? '') },
+    { k: 'freightAmt', label: 'Freight amount (override)', type: 'number', ph: 'Calculated' },
+    { k: 'lrNo', label: 'LR / GR no.' }, { k: 'fbDate', label: 'Freight bill date', type: 'date' },
+    { k: 'fbNo', label: 'Freight bill no.', ph: 'Given on first print' }
+  ] : [
+    { k: 'fbNo', label: 'Their bill no.', ph: 'From the bill they sent' }, { k: 'fbDate', label: 'Their bill date', type: 'date' },
+    { k: 'lrNo', label: 'LR / GR no.' }, { k: 'fbAmt', label: 'Bill amount (₹)', type: 'number', ph: 'Total on their bill' },
+    { k: 'freightBasis', label: 'Expected basis', type: 'select', options: [['', 'Default (' + (BASIS[fc?.basis || 'mt']) + ')'], ...Object.entries(BASIS)] },
+    { k: 'freightRate', label: 'Expected rate', type: 'number', ph: has(fc.rate) ? 'Default ' + fc.rate : 'For checking their bill' }
+  ];
+  return [
+    { section: 'Parties' },
+    { k: 'code', label: 'Transaction ID', ro: 1 }, { k: 'date', label: 'Date', type: 'date' },
+    { k: 'clientId', label: 'Seller', type: 'select', options: () => listOpts(db.clients), req: 1 },
+    { k: 'buyerId', label: 'Buyer', type: 'select', options: () => listOpts(db.buyers), req: 1 },
+    { section: 'Goods' },
+    { k: 'productId', label: 'Product', type: 'select', options: () => listOpts(db.products) },
+    { k: 'desc', label: 'Description (optional)', ph: prod?.name || 'Uses product name' },
+    { k: 'hsn', label: 'HSN', ph: prod?.hsn || '' },
+    { k: 'qty', label: 'Quantity', type: 'number', req: 1 },
+    { k: 'unit', label: 'Unit', type: 'select', options: [['', prod?.unit ? 'Product unit (' + prod.unit + ')' : '—'], ...UNIT_OPTS] },
+    { k: 'rate', label: 'Rate (₹ per unit)', type: 'number', req: 1 },
+    { k: 'gst', label: 'GST %', type: 'select', options: [['', prod ? 'Product (' + (prod.gst ?? '') + '%)' : '—'], ...GST_OPTS] },
+    { section: 'Movement' },
+    { k: 'vehicle', label: 'Vehicle no.', list: 'vehList', upper: 1, req: 1 },
+    { k: 'from', label: 'From' }, { k: 'to', label: 'To' }, { k: 'km', label: 'Distance (km)', type: 'number' },
+    { section: 'From Tally', note: 'Enter after the invoice and e-way bill are made in Tally.' },
+    { k: 'invNo', label: 'Invoice no.' }, { k: 'invDate', label: 'Invoice date', type: 'date' },
+    { k: 'ewbNo', label: 'E-way bill no.' }, { k: 'ewbDate', label: 'E-way bill date', type: 'date' },
+    { section: 'Weighment (from the weighbridge slip)', note: 'Copy these from the slip the weighbridge gave you. Net weight = gross − tare, and it is checked against the invoice quantity.' },
+    { k: 'bridgeId', label: 'Weighbridge', type: 'select', options: () => listOpts(db.bridges) },
+    { k: 'slipNo', label: 'Slip no.' }, { k: 'wsDate', label: 'Weighment date', type: 'date' },
+    { k: 'grossWt', label: 'Gross weight (kg)', type: 'number' }, { k: 'grossTime', label: 'Gross time', type: 'time' },
+    { k: 'tareWt', label: 'Tare weight (kg)', type: 'number' }, { k: 'tareTime', label: 'Tare time', type: 'time' },
+    { section: 'Freight', note: !fc ? 'Choose the transporter who carried the goods.' : own ? 'Your own transport business — its freight bill is printed from here.' : `Record the bill ${fc.name} sent you. It is checked against the expected freight.` },
+    { k: 'freightId', label: 'Freight company', type: 'select', options: () => listOpts(db.freight) },
+    ...freight,
+    { section: 'Other' },
+    { k: 'notes', label: 'Notes', type: 'textarea', wide: 1 },
+    { k: 'delivered', label: 'Delivered / completed', type: 'check' }
+  ];
+}
+const BASIS = { mt: 'Per MT', kg: 'Per kg', trip: 'Per trip (fixed)', km: 'Per km' };
+function extraFieldsHTML(t) {
+  const ent = byId(db.freight, t.freightId);
+  if (!ent || ent.id !== db.settings.ownFreightId) return '';
+  const per = normTpl(ent.tpl, 'fb').custom.filter(f => f.perTx);
+  if (!per.length) return '';
+  return '<div class="form" style="margin-top:10px">' + `<div class="fsec">Freight bill extras · ${esc(ent.name)}</div>` + per.map(f => `<label class="fld"><span>${esc(f.label)}${f.type === 'amount' ? ' (₹)' : ''}</span><input name="x_fb_${f.id}" value="${esc(t.extra?.fb?.[f.id] ?? f.value ?? '')}" ${f.type === 'amount' ? 'inputmode="decimal"' : ''}></label>`).join('') + '</div>';
+}
+function txPanelHTML(t) {
+  const c = calc(t), iss = checkTx(t);
+  const kv = (a, b, cls = '') => `<div class="kv ${cls}"><span>${a}</span><b>${b}</b></div>`;
+  const kg = v => v == null ? '—' : qf(v, 2) + ' kg';
+  const diff = c.slipKg != null && c.invKg != null ? r2(c.slipKg - c.invKg) : null;
+  const fTax = c.fTax ? (c.fInter ? kv(`IGST ${c.fRate}%`, money(c.fIgst)) : kv(`CGST+SGST ${c.fRate}%`, money(c.fTax))) : c.rcm ? kv('GST', 'RCM (by recipient)') : '';
+  let h = `<h4>Invoice (goes to Tally)</h4>${kv('Taxable value', money(c.taxable))}${c.inter ? kv(`IGST ${c.gst}%`, money(c.igst)) : kv(`CGST ${c.gst / 2}%`, money(c.cgst)) + kv(`SGST ${c.gst / 2}%`, money(c.sgst))}${c.roundOff ? kv('Round off', money(c.roundOff)) : ''}${kv('Invoice value', '₹ ' + money(c.total), 'tot')}
+  <div class="small muted">${c.client && c.buyer ? (c.inter ? 'Inter-state (IGST)' : 'Intra-state (CGST + SGST)') : ''}</div>
+  <h4>Weighment slip</h4>${kv('Invoice weight', kg(c.invKg))}${kv('Slip gross', kg(c.grossKg))}${kv('Slip tare', kg(c.tare))}${kv('Slip net', kg(c.slipKg), 'tot')}${diff != null ? kv('Difference', (diff > 0 ? '+' : '') + qf(diff, 2) + ' kg') : ''}${c.slipDone ? '' : '<div class="small muted">Waiting for the slip details.</div>'}
+  <h4>Freight${c.fc ? ' · ' + esc(c.fc.name) : ''}</h4>${c.own
+    ? `${kv('Basis', esc(c.rateLabel))}${kv('Freight', money(c.freight))}${c.other.map(o => kv(esc(o.label), money(o.amt))).join('')}${fTax}${kv('Our bill total', '₹ ' + money(c.fTotal), 'tot')}`
+    : c.fc ? `${num(c.fc.rate) > 0 || has(t.freightRate) ? kv('Expected', '₹ ' + money(c.fTotal)) : ''}${kv('Their bill', c.fbAmt == null ? '—' : '₹ ' + money(c.fbAmt), 'tot')}` : '<div class="small muted">No transporter chosen.</div>'}
+  <h4>Checks</h4>${iss.length ? `<ul class="issues">${iss.map(i => `<li class="${i.sev}">${esc(i.msg)}</li>`).join('')}</ul>` : '<div class="note ok" style="margin:0">All good.</div>'}`;
+  if (t.history?.length) h += `<h4>History</h4><div class="hist">${[...t.history].reverse().map(x => `<div><span>${fmtDT(x.at)}</span> — ${esc(x.msg)}</div>`).join('')}</div>`;
+  return h;
+}
+function editTx(id) {
+  const orig = id ? byId(db.tx, id) : null;
+  const t = orig ? JSON.parse(JSON.stringify(orig)) : newTx();
+  const isNew = !orig;
+  if (isNew) db.settings.txNext--; // number is only consumed when saved
+  const m = openModal({
+    title: isNew ? 'New transaction' : `${t.code} · ${calc(t).buyer?.name || ''}`, size: 'wide',
+    html: `${vehicleDatalist()}<div class="split"><div><div id="txForm">${formHTML(txFields(t), t)}</div><div id="txExtra">${extraFieldsHTML(t)}</div></div><div class="panel" id="txPanel">${txPanelHTML(t)}</div></div>`,
+    buttons: [
+      ...(isNew ? [] : [{ label: t.deleted ? 'Restore' : 'Delete', cls: 'danger', left: true, onClick: async () => { if (t.deleted) { orig.deleted = false; log(`${t.code} restored`); save(); render(); return; } if (!(await confirmBox(`Delete ${t.code}? It moves to "Deleted" and can be restored.`, 'Delete', true))) return false; orig.deleted = true; orig.history.push({ at: Date.now(), msg: 'Deleted' }); log(`${t.code} deleted`); save(); render(); } }]),
+      ...(isNew || !isOwnFreight(t) ? [] : [{ label: 'Print our freight bill', onClick: () => { if (!commit()) return false; printOwnBills([byId(db.tx, t.id)]); } }]),
+      { label: 'Cancel' },
+      { label: 'Save', cls: 'pri', onClick: () => commit() }
+    ]
+  });
+  const pull = () => {
+    const f = readForm(m.body);
+    for (const k in f) { if (k.startsWith('x_')) { const [, kind, fid] = k.split('_'); t.extra = t.extra || { ws: {}, fb: {} }; (t.extra[kind] = t.extra[kind] || {})[fid] = f[k]; } else if (k !== 'code') t[k] = f[k]; }
+  };
+  const refreshPanel = () => { pull(); $('#txPanel', m.el).innerHTML = txPanelHTML(t); };
+  const rebuild = () => { // re-render form after an autofill so placeholders/defaults update
+    const sc = m.body.scrollTop; $('#txForm', m.el).innerHTML = formHTML(txFields(t), t); $('#txExtra', m.el).innerHTML = extraFieldsHTML(t); $('#txPanel', m.el).innerHTML = txPanelHTML(t); m.body.scrollTop = sc;
+  };
+  let pt;
+  m.body.addEventListener('input', () => { clearTimeout(pt); pt = setTimeout(refreshPanel, 150); });
+  m.body.addEventListener('change', e => {
+    const n = e.target.name; pull();
+    if (n === 'clientId') { const cl = byId(db.clients, t.clientId); if (cl) { if (!t.from && cl.place) t.from = cl.place; if (!t.bridgeId && cl.bridgeId) t.bridgeId = cl.bridgeId; if (!t.freightId && cl.freightId) t.freightId = cl.freightId; } }
+    if (n === 'buyerId') { const b = byId(db.buyers, t.buyerId); if (b && b.place && !t.to) t.to = b.place; }
+    if (n === 'productId') { const p = byId(db.products, t.productId); if (p) { if (has(p.rate) && !has(t.rate)) t.rate = String(p.rate); t.unit = ''; t.gst = ''; } }
+    if (n === 'vehicle') { const v = findVehicle(t.vehicle); if (v && v.freightId && !t.freightId) t.freightId = v.freightId; }
+    if (['clientId', 'buyerId', 'productId', 'vehicle', 'freightId', 'bridgeId'].includes(n)) rebuild(); else refreshPanel();
+  });
+  function commit() {
+    pull();
+    if (!t.clientId || !t.buyerId) { toast('Choose the seller and buyer', 'warn'); return false; }
+    const dupInv = has(t.invNo) && db.tx.find(o => o.id !== t.id && !o.deleted && o.clientId === t.clientId && normInv(o.invNo) === normInv(t.invNo));
+    if (dupInv) { toast(`Invoice no. ${t.invNo} is already used on ${dupInv.code}`, 'err'); return false; }
+    if (isNew) {
+      t.code = db.settings.txPrefix + String(db.settings.txNext++).padStart(4, '0');
+      t.updated = Date.now(); db.tx.push(t); log(`${t.code} created`); save(); render(); toast(`${t.code} saved`); return true;
+    }
+    const changes = [];
+    for (const k of Object.keys(TX_LABELS)) {
+      if (String(orig[k] ?? '') === String(t[k] ?? '')) continue;
+      const show = v => { if (k === 'clientId') return byId(db.clients, v)?.name; if (k === 'buyerId') return byId(db.buyers, v)?.name; if (k === 'productId') return byId(db.products, v)?.name; if (k === 'freightId') return byId(db.freight, v)?.name; if (k === 'bridgeId') return byId(db.bridges, v)?.name; if (typeof v === 'boolean') return v ? 'yes' : 'no'; return v; };
+      changes.push(`${TX_LABELS[k]}: ${has(show(orig[k])) ? show(orig[k]) : '—'} → ${has(show(t[k])) ? show(t[k]) : '—'}`);
+    }
+    const extraChanged = JSON.stringify(orig.extra || {}) !== JSON.stringify(t.extra || {});
+    if (extraChanged) changes.push('Document extra fields changed');
+    if (!changes.length) return true;
+    const docAffecting = changes.some(c => !/^(Notes|Delivered)/.test(c));
+    t.history = orig.history || [];
+    t.history.push({ at: Date.now(), msg: changes.join('; ') });
+    if (docAffecting) t.updated = Date.now();
+    Object.assign(orig, t);
+    log(`${t.code} edited — ${changes.length} change(s)`); save(); render(); toast(`${t.code} saved`);
+    return true;
+  }
+}
+
+/* =====================================================================
+   Tally bridge
+   ===================================================================== */
+function tallyRow(t) {
+  const c = calc(t);
+  return { 'TR ID': t.code, 'Date': fmtDate(t.date), 'Seller': c.client?.name || '', 'Seller GSTIN': c.client?.gstin || '', 'Buyer': c.buyer?.name || '', 'Buyer GSTIN': c.buyer?.gstin || '', 'Buyer Address': c.buyer?.address || '', 'Buyer State': STATES[partyState(c.buyer)] || '', 'Place of Supply': partyState(c.buyer) ? partyState(c.buyer) + '-' + (STATES[partyState(c.buyer)] || '') : '', 'Item': c.desc, 'HSN': c.hsn, 'Qty': c.qty, 'Unit': c.unit, 'Rate': c.rate, 'Taxable Value': c.taxable, 'GST %': c.gst, 'CGST': c.cgst, 'SGST': c.sgst, 'IGST': c.igst, 'Round Off': c.roundOff, 'Invoice Value': c.total, 'Vehicle No': t.vehicle, 'From': t.from, 'To': t.to, 'Distance (km)': t.km, 'Transporter': c.fc?.name || '', 'Transporter GSTIN': c.fc?.gstin || '', 'Invoice No': t.invNo, 'Invoice Date': fmtDate(t.invDate), 'E-Way Bill No': t.ewbNo, 'E-Way Bill Date': fmtDate(t.ewbDate) };
+}
+function viewTally() {
+  setBar('Tally bridge');
+  const live = liveTx();
+  const awaiting = live.filter(t => !has(t.invNo)).sort((a, b) => a.code.localeCompare(b.code));
+  const needRefs = live.filter(t => !t.delivered && (!has(t.invNo) || !has(t.ewbNo) || !has(t.invDate))).sort((a, b) => a.code.localeCompare(b.code));
+  $('#view').innerHTML = `<div class="note info">Tally stays your system for tax invoices and e-way bills. Here you <b>send</b> transaction details out to Tally, then <b>bring back</b> the invoice and e-way bill numbers so every document can show them.</div>
+  <div class="card"><h3>1 · Send to Tally</h3><p class="sub">Excel sheet with seller, buyer, GSTIN, place of supply, item, HSN, quantity, rate, tax split and transport details — one row per invoice.</p>
+  <div class="row"><button class="btn pri" data-act="tallyExport" data-w="awaiting" ${awaiting.length ? '' : 'disabled'}>Export ${awaiting.length} awaiting invoice</button><button class="btn" data-act="tallyExport" data-w="all">Export all transactions</button></div></div>
+  <div class="card"><h3>2 · Enter numbers from Tally</h3><p class="sub">Type the invoice and e-way bill numbers here, then save. Or import them from Excel (columns: <i>TR ID, Invoice No, Invoice Date, E-Way Bill No, E-Way Bill Date</i>).</p>
+  <div class="row" style="margin-bottom:10px"><button class="btn" data-act="tallyImport">Import from Excel / CSV</button><span class="spacer"></span><button class="btn pri" data-act="tallySave" ${needRefs.length ? '' : 'disabled'}>Save numbers</button></div>
+  ${needRefs.length ? `<div class="tw"><table class="t ed"><thead><tr><th>ID</th><th>Seller</th><th>Buyer</th><th class="n">Invoice value</th><th>Vehicle</th><th style="min-width:130px">Invoice no.</th><th style="min-width:140px">Invoice date</th><th style="min-width:150px">E-way bill no.</th><th style="min-width:140px">E-way date</th></tr></thead><tbody>
+  ${needRefs.map(t => { const c = calc(t); return `<tr data-tid="${t.id}"><td class="ro"><b>${esc(t.code)}</b></td><td class="ro">${esc(c.client?.name || '')}</td><td class="ro">${esc(c.buyer?.name || '')}</td><td class="ro n">${money(c.total)}</td><td class="ro">${esc(t.vehicle)}</td><td><input data-f="invNo" value="${esc(t.invNo)}" style="border-color:var(--line)"></td><td><input type="date" data-f="invDate" value="${esc(t.invDate || t.date)}"></td><td><input data-f="ewbNo" value="${esc(t.ewbNo)}" style="border-color:var(--line)" inputmode="numeric"></td><td><input type="date" data-f="ewbDate" value="${esc(t.ewbDate || t.invDate || t.date)}"></td></tr>`; }).join('')}
+  </tbody></table></div>` : '<div class="empty">Every transaction already has its Tally numbers.</div>'}</div>`;
+}
+function applyRefs(t, refs, source) {
+  const ch = [];
+  for (const k of ['invNo', 'invDate', 'ewbNo', 'ewbDate']) if (has(refs[k]) && String(t[k] ?? '') !== String(refs[k])) { ch.push(`${TX_LABELS[k]}: ${t[k] || '—'} → ${refs[k]}`); t[k] = refs[k]; }
+  if (ch.length) { t.history = t.history || []; t.history.push({ at: Date.now(), msg: ch.join('; ') + (source ? ' (' + source + ')' : '') }); t.updated = Date.now(); }
+  return ch.length > 0;
+}
+function tallySave() {
+  let n = 0; const errs = [];
+  $$('#view tr[data-tid]').forEach(tr => {
+    const t = byId(db.tx, tr.dataset.tid); if (!t) return;
+    const r = {}; $$('input[data-f]', tr).forEach(i => r[i.dataset.f] = i.value.trim());
+    if (!has(r.invNo)) { r.invDate = ''; if (!has(r.ewbNo)) r.ewbDate = ''; }
+    if (!has(r.ewbNo)) r.ewbDate = '';
+    if (has(r.invNo)) { const d = db.tx.find(o => o.id !== t.id && !o.deleted && o.clientId === t.clientId && normInv(o.invNo) === normInv(r.invNo)); if (d) { errs.push(`${t.code}: invoice ${r.invNo} already on ${d.code}`); return; } }
+    if (applyRefs(t, r, 'Tally bridge')) n++;
+  });
+  if (n) { log(`Tally numbers saved for ${n} transaction(s)`); save(); }
+  render();
+  if (errs.length) toast(errs.join(' · '), 'err'); else toast(n ? `Saved numbers for ${n} transaction(s)` : 'Nothing changed');
+}
+async function tallyImport() {
+  const file = await pickFile('.xlsx,.xls,.csv'); if (!file) return;
+  let rows; try { rows = await readSheetFile(file); } catch (e) { return toast(e.message, 'err'); }
+  if (!rows.length) return toast('The file has no rows', 'warn');
+  const keys = Object.keys(rows[0]);
+  const find = re => keys.find(k => re.test(k.trim()));
+  const kId = find(/^(tr\s*id|transaction\s*id|id|code)$/i) || find(/tr\s*id|transaction/i);
+  const kInv = find(/^(invoice|inv|bill|voucher)\.?\s*(no|number|num)\.?$/i) || find(/invoice\s*no|voucher\s*no/i);
+  const kInvD = find(/^(invoice|inv|voucher)\s*date$/i) || find(/invoice\s*date|^date$/i);
+  const kEwb = find(/e-?\s*way\s*bill\s*(no|number)|ewb\s*no|^ewb$/i);
+  const kEwbD = find(/e-?\s*way\s*bill\s*date|ewb\s*date/i);
+  if (!kId || !(kInv || kEwb)) return toast('Need a "TR ID" column and an "Invoice No" or "E-Way Bill No" column', 'err');
+  let n = 0, miss = 0;
+  for (const r of rows) {
+    const t = db.tx.find(x => !x.deleted && x.code.toUpperCase() === String(r[kId]).trim().toUpperCase());
+    if (!t) { if (has(r[kId])) miss++; continue; }
+    if (applyRefs(t, { invNo: kInv ? String(r[kInv]).trim() : '', invDate: kInvD ? toISO(r[kInvD]) : '', ewbNo: kEwb ? String(r[kEwb]).trim() : '', ewbDate: kEwbD ? toISO(r[kEwbD]) : '' }, 'imported')) n++;
+  }
+  log(`Imported Tally numbers from ${file.name}: ${n} updated`); save(); render();
+  toast(`${n} transaction(s) updated${miss ? `, ${miss} ID(s) not found` : ''}`, miss ? 'warn' : 'ok');
+}
+
+/* =====================================================================
+   Documents
+   ===================================================================== */
+function viewDocuments() {
+  setBar('Slips & bills');
+  const own = byId(db.freight, db.settings.ownFreightId);
+  const live = liveTx().filter(t => !t.delivered && has(t.invNo));
+  const noInv = liveTx().filter(t => !t.delivered && !has(t.invNo)).length;
+  const toIssue = live.filter(t => isOwnFreight(t) && (!t.docs?.fb || docsOutdated(t))).sort((a, b) => a.code.localeCompare(b.code));
+  const ready = toIssue.filter(t => !checkTx(t).some(i => i.sev === 'error'));
+  const collect = live.filter(t => !calc(t).slipDone || (!isOwnFreight(t) && !fbDone(t))).sort((a, b) => a.code.localeCompare(b.code));
+  const issued = own ? liveTx().filter(t => isOwnFreight(t) && t.docs?.fb).sort((a, b) => b.docs.fb.at - a.docs.fb.at).slice(0, 30) : [];
+  const errChip = t => { const ne = checkTx(t).filter(i => i.sev === 'error'); return ne.length ? `<span class="chip err" title="${esc(ne.map(i => i.msg).join('\n'))}">${ne.length} error(s)</span>` : ''; };
+  const ownCard = own ? `<div class="card"><h3>Freight bills to issue · ${esc(own.name)}</h3><p class="sub">Your own transport business. Bill numbers are given on first print and reused if you print again. In the print window choose <b>Save as PDF</b> to keep files.</p>
+  <div class="row" style="margin-bottom:10px"><button class="btn amb" data-act="printReady" ${ready.length ? '' : 'disabled'}>Print all ${ready.length} ready</button>${toIssue.length - ready.length ? `<span class="small muted">${toIssue.length - ready.length} blocked by errors — see Checks</span>` : ''}<span class="spacer"></span><button class="btn sm" data-act="tplEdit" data-id="${own.id}">Edit bill template</button></div>
+  ${toIssue.length ? `<div class="tw"><table class="t"><thead><tr><th>ID</th><th>Seller</th><th>Buyer</th><th>Vehicle</th><th>Invoice no.</th><th class="n">Freight</th><th>Status</th><th></th></tr></thead><tbody>
+  ${toIssue.map(t => { const c = calc(t); return `<tr><td><b class="btn link" data-act="editTx" data-id="${t.id}">${esc(t.code)}</b></td><td>${esc(c.client?.name || '')}</td><td>${esc(c.buyer?.name || '')}</td><td>${esc(t.vehicle)}</td><td>${esc(t.invNo)}</td><td class="n">${money(c.fTotal)}</td><td>${errChip(t) || (docsOutdated(t) ? '<span class="chip err">Changed — reprint</span>' : '<span class="chip warn">Ready</span>')}</td><td><button class="btn sm amb" data-act="printTx" data-id="${t.id}">Print bill</button></td></tr>`; }).join('')}</tbody></table></div>` : '<div class="empty">No freight bills waiting.</div>'}</div>`
+    : `<div class="note info">No transport business of your own is set. If you own and run one, choose it in <button class="btn link" data-act="go" data-v="settings">Settings</button> to print its freight bills here. Bills from other transporters are recorded below.</div>`;
+  $('#view').innerHTML = `${ownCard}
+  <div class="card"><h3>Slips and bills to collect</h3><p class="sub">Weighment slips from the weighbridges and freight bills from other transporters. Open the transaction and copy the details from the document you received.${noInv ? ` ${noInv} more are still waiting for Tally invoice numbers.` : ''}</p>
+  ${collect.length ? `<div class="tw"><table class="t"><thead><tr><th>ID</th><th>Seller</th><th>Buyer</th><th>Vehicle</th><th>Invoice no.</th><th>Weighbridge</th><th>Slip</th><th>Transporter</th><th>Their bill</th><th></th></tr></thead><tbody>
+  ${collect.map(t => { const c = calc(t), ownT = isOwnFreight(t); return `<tr><td><b class="btn link" data-act="editTx" data-id="${t.id}">${esc(t.code)}</b> ${errChip(t)}</td><td>${esc(c.client?.name || '')}</td><td>${esc(c.buyer?.name || '')}</td><td>${esc(t.vehicle)}</td><td>${esc(t.invNo)}</td><td>${esc(byId(db.bridges, t.bridgeId)?.name || '—')}</td><td>${c.slipDone ? '✓ ' + esc(t.slipNo) : '<span class="chip warn">needed</span>'}</td><td>${esc(c.fc?.name || '—')}</td><td>${ownT ? '<span class="muted">ours</span>' : fbDone(t) ? '✓ ' + esc(t.fbNo) : t.freightId ? '<span class="chip warn">needed</span>' : '—'}</td><td><button class="btn sm" data-act="editTx" data-id="${t.id}">Enter details</button></td></tr>`; }).join('')}</tbody></table></div>` : '<div class="empty">Nothing to collect.</div>'}</div>
+  ${own ? `<div class="card"><h3>Recently issued · ${esc(own.name)}</h3>${issued.length ? `<div class="tw"><table class="t"><thead><tr><th>ID</th><th>Buyer</th><th>Freight bill</th><th>Last printed</th><th></th></tr></thead><tbody>${issued.map(t => `<tr><td><b class="btn link" data-act="editTx" data-id="${t.id}">${esc(t.code)}</b></td><td>${esc(calc(t).buyer?.name || '')}</td><td>${esc(t.fbNo || '—')}</td><td>${fmtDT(t.docs.fb.at)}</td><td><button class="btn sm" data-act="printTx" data-id="${t.id}">Reprint</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Nothing printed yet.</div>'}</div>` : ''}`;
+}
+function sampleTxFor(kind, ent) {
+  const used = liveTx().filter(t => t.freightId === ent.id).sort((a, b) => b.created - a.created)[0];
+  if (used) return used;
+  return { id: '_sample', code: 'SAMPLE', date: todayISO(), clientId: db.clients[0]?.id, buyerId: db.buyers[0]?.id, productId: db.products[0]?.id, qty: '20', unit: 'MT', rate: '1000', vehicle: db.vehicles[0]?.number || 'TN00AB1234', from: 'From place', to: 'To place', km: '100', invNo: 'INV/001', invDate: todayISO(), ewbNo: '123456789012', lrNo: '101', freightId: ent.id, extra: { ws: {}, fb: {} }, docs: {} };
+}
+function editTemplate(kind, entId) {
+  kind = 'fb';
+  const list = db.freight;
+  const ent = byId(list, entId); if (!ent) return;
+  if (ent.id !== db.settings.ownFreightId) { toast('Bill templates are only for your own transport business (Settings)', 'warn'); return; }
+  let tpl = JSON.parse(JSON.stringify(normTpl(ent.tpl, kind)));
+  const sample = sampleTxFor(kind, ent);
+  const m = openModal({
+    title: `Freight bill template · ${ent.name}`, size: 'wide',
+    html: `<div class="split"><div id="tplCfg"></div><div><div class="row small muted" style="margin-bottom:6px">Live preview ${sample.id === '_sample' ? '(sample data)' : 'using ' + esc(sample.code)}</div><div class="pv"><div class="pvi" id="tplPv"></div></div></div></div>`,
+    buttons: [{ label: 'Reset to default', cls: 'danger', left: true, onClick: async () => { if (await confirmBox('Reset this template to the default layout and fields?', 'Reset', true)) { tpl = defaultTpl(kind); draw(); } return false; } },
+      { label: 'Cancel' }, { label: 'Save template', cls: 'pri', onClick: () => { ent.tpl = tpl; log(`Template updated: ${ent.name}`); save(); render(); toast('Template saved'); } }]
+  });
+  const cfg = $('#tplCfg', m.el);
+  const preview = () => {
+    const tmp = { ...ent, tpl }; const saved = list.indexOf(ent); list[saved] = tmp;
+    try { $('#tplPv', m.el).innerHTML = renderDoc(sample, kind); } finally { list[saved] = ent; }
+  };
+  const draw = () => {
+    cfg.innerHTML = `<div class="form">
+      <label class="fld"><span>Layout</span><select data-t="layout">${optHTML(LAYOUTS[kind], tpl.layout)}</select></label>
+      <label class="fld"><span>Paper</span><select data-t="paper">${optHTML([['A4', 'A4'], ['A5', 'A5']], tpl.paper)}</select></label>
+      <label class="fld wide"><span>Document title</span><input data-t="title" value="${esc(tpl.title)}"></label>
+      <label class="fld wide"><span>Extra header line (optional)</span><input data-t="header" value="${esc(tpl.header)}" placeholder="e.g. Approved by Legal Metrology, Lic. No. …"></label>
+      ${kind === 'fb' ? `<label class="fld wide"><span>Terms</span><textarea data-t="terms" rows="2">${esc(tpl.terms)}</textarea></label>` : ''}
+      <label class="fld wide"><span>Footer note</span><input data-t="footer" value="${esc(tpl.footer)}"></label></div>
+      <div class="fsec" style="margin-top:12px">Standard fields <small>Tick to show, rename to match this company's wording, ↑↓ to reorder.</small></div>
+      <div class="tfl">${tpl.fields.map((f, i) => `<input type="checkbox" data-fs="${i}" ${f.show ? 'checked' : ''}><div><input type="text" data-fl="${i}" value="${esc(f.label)}"><div class="k">${esc(FB_FIELDS.find(x => x[0] === f.k)?.[1] || f.k)}</div></div><button class="btn sm" data-up="${i}" ${i ? '' : 'disabled'}>↑</button><button class="btn sm" data-dn="${i}" ${i < tpl.fields.length - 1 ? '' : 'disabled'}>↓</button>`).join('')}</div>
+      <div class="fsec" style="margin-top:12px">Extra fields <small>Fixed: same text on every document. Per transaction: typed on each transaction. ${kind === 'fb' ? 'Charge: an amount added to the bill total.' : ''}</small></div>
+      ${tpl.custom.length ? `<div class="cfr small muted"><span>Label</span><span>Type</span><span>Value comes from</span><span>Value / default</span><span></span></div>` : ''}
+      ${tpl.custom.map((c, i) => `<div class="cfr"><input data-cl="${i}" value="${esc(c.label)}" placeholder="Label"><select data-ct="${i}">${optHTML(kind === 'fb' ? [['text', 'Text'], ['amount', 'Charge (₹)']] : [['text', 'Text'], ['amount', 'Amount (₹)']], c.type)}</select><select data-cp="${i}">${optHTML([['0', 'Fixed'], ['1', 'Per transaction']], c.perTx ? '1' : '0')}</select><input data-cv="${i}" value="${esc(c.value)}" placeholder="${c.perTx ? 'Default (optional)' : 'Value'}"><button class="btn sm danger" data-cx="${i}">✕</button></div>`).join('')}
+      <button class="btn sm" data-cadd="1">+ Add extra field</button>`;
+    preview();
+  };
+  cfg.addEventListener('input', e => {
+    const el = e.target, d = el.dataset;
+    if (d.t) tpl[d.t] = el.value;
+    else if (d.fl !== undefined) tpl.fields[+d.fl].label = el.value;
+    else if (d.cl !== undefined) tpl.custom[+d.cl].label = el.value;
+    else if (d.cv !== undefined) tpl.custom[+d.cv].value = el.value;
+    preview();
+  });
+  cfg.addEventListener('change', e => {
+    const el = e.target, d = el.dataset;
+    if (d.fs !== undefined) tpl.fields[+d.fs].show = el.checked;
+    else if (d.ct !== undefined) tpl.custom[+d.ct].type = el.value;
+    else if (d.cp !== undefined) { tpl.custom[+d.cp].perTx = el.value === '1'; draw(); return; }
+    else if (d.t === 'layout' || d.t === 'paper') tpl[d.t] = el.value;
+    preview();
+  });
+  cfg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+    if (d.up !== undefined) { const i = +d.up; [tpl.fields[i - 1], tpl.fields[i]] = [tpl.fields[i], tpl.fields[i - 1]]; }
+    else if (d.dn !== undefined) { const i = +d.dn; [tpl.fields[i + 1], tpl.fields[i]] = [tpl.fields[i], tpl.fields[i + 1]]; }
+    else if (d.cx !== undefined) tpl.custom.splice(+d.cx, 1);
+    else if (d.cadd) tpl.custom.push({ id: uid().slice(0, 6), label: '', type: 'text', perTx: false, value: '' });
+    else return;
+    draw();
+  });
+  draw();
+}
+
+/* =====================================================================
+   Checks
+   ===================================================================== */
+function viewChecks() {
+  setBar('Checks');
+  const rows = [];
+  liveTx().filter(t => !t.delivered).forEach(t => checkTx(t).forEach(i => rows.push({ ...i, t })));
+  const mrows = checkMasters();
+  const errs = rows.filter(r => r.sev === 'error'), warns = rows.filter(r => r.sev === 'warn' && !/not entered yet/.test(r.msg));
+  const waiting = rows.filter(r => /not entered yet/.test(r.msg)).length;
+  const tbl = list => `<div class="tw"><table class="t"><thead><tr><th>ID</th><th>Seller</th><th>Buyer</th><th>Issue</th><th></th></tr></thead><tbody>${list.map(r => { const c = calc(r.t); return `<tr><td><b>${esc(r.t.code)}</b></td><td>${esc(c.client?.name || '')}</td><td>${esc(c.buyer?.name || '')}</td><td><span class="chip ${r.sev === 'error' ? 'err' : 'warn'}">${r.sev === 'error' ? 'Error' : 'Warning'}</span> ${esc(r.msg)}</td><td><button class="btn sm" data-act="editTx" data-id="${r.t.id}">Fix</button></td></tr>`; }).join('')}</tbody></table></div>`;
+  $('#view').innerHTML = `<div class="note info">Errors block printing your own freight bills. Warnings are worth a look. Checked: GSTIN format and check digit, tax maths, duplicate invoice numbers, vehicle numbers, weighment slip net weight against the invoice, duplicate slip and bill numbers, transporters' bill amounts, e-way bill above ₹${qf(db.settings.ewbLimit || 50000, 0)}, and freight bills that changed after printing.</div>
+  <div class="card"><h3>Errors (${errs.length})</h3>${errs.length ? tbl(errs) : '<div class="empty">No errors.</div>'}</div>
+  <div class="card"><h3>Warnings (${warns.length})</h3>${waiting ? `<p class="sub">${waiting} transaction(s) are simply waiting for Tally numbers — not listed here. <button class="btn link" data-act="go" data-v="tally">Open Tally bridge</button></p>` : ''}${warns.length ? tbl(warns) : '<div class="empty">No warnings.</div>'}</div>
+  <div class="card"><h3>Masters (${mrows.length})</h3>${mrows.length ? `<div class="tw"><table class="t"><tbody>${mrows.map(r => `<tr><td><span class="chip ${r.sev === 'error' ? 'err' : 'warn'}">${r.sev === 'error' ? 'Error' : 'Warning'}</span> ${esc(r.msg)}</td><td><button class="btn sm" data-act="mEdit" data-m="${r.m}" data-id="${r.id}">Fix</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Masters look good.</div>'}</div>`;
+}
+
+/* =====================================================================
+   Reports
+   ===================================================================== */
+const GROUPS = { client: ['Seller', t => calc(t).client?.name || '—'], buyer: ['Buyer', t => calc(t).buyer?.name || '—'], freight: ['Freight company', t => calc(t).fc?.name || '—'], bridge: ['Weighbridge', t => byId(db.bridges, t.bridgeId)?.name || '—'], product: ['Product', t => calc(t).desc || '—'], month: ['Month', t => (t.invDate || t.date || '').slice(0, 7)] };
+function repRows() {
+  const r = ui.rep;
+  return liveTx().filter(t => { const d = t.invDate || t.date || ''; return (!r.from || d >= r.from) && (!r.to || d <= r.to) && (!r.client || t.clientId === r.client); });
+}
+function viewReports() {
+  setBar('Reports');
+  const r = ui.rep, list = repRows(), [gLabel, gFn] = GROUPS[r.by];
+  const groups = new Map();
+  for (const t of list) { const k = gFn(t), c = calc(t); const g = groups.get(k) || { k, n: 0, kg: 0, taxable: 0, tax: 0, total: 0, freight: 0 }; g.n++; g.kg += c.netKg || 0; g.taxable += c.taxable; g.tax += c.tax; g.total += c.total; g.freight += c.own ? c.fTotal : (c.fbAmt || 0); groups.set(k, g); }
+  const gs = [...groups.values()].sort((a, b) => r.by === 'month' ? a.k.localeCompare(b.k) : b.total - a.total);
+  const T = gs.reduce((a, g) => { for (const k of ['n', 'kg', 'taxable', 'tax', 'total', 'freight']) a[k] += g[k]; return a; }, { n: 0, kg: 0, taxable: 0, tax: 0, total: 0, freight: 0 });
+  $('#view').innerHTML = `<div class="filters"><span class="small muted">From</span><input class="inp" type="date" id="rFrom" value="${esc(r.from)}"><span class="small muted">to</span><input class="inp" type="date" id="rTo" value="${esc(r.to)}">
+    <select class="inp" id="rClient">${optHTML(listOpts(db.clients, 'All sellers'), r.client)}</select>
+    <span class="small muted">Group by</span><select class="inp" id="rBy">${optHTML(Object.entries(GROUPS).map(([k, v]) => [k, v[0]]), r.by)}</select></div>
+  <div class="kpis"><div class="kpi"><div class="n">${T.n}</div><div class="l">Transactions</div></div><div class="kpi"><div class="n">${qf(T.kg / 1000, 2)}</div><div class="l">Tonnes moved</div></div><div class="kpi"><div class="n">₹${qf(T.total, 0)}</div><div class="l">Invoice value</div></div><div class="kpi"><div class="n">₹${qf(T.freight, 0)}</div><div class="l">Freight bills</div></div></div>
+  <div class="card"><div class="row" style="margin-bottom:10px"><h3 style="margin:0">By ${gLabel.toLowerCase()}</h3><span class="spacer"></span><button class="btn" data-act="repExport">Export this table</button><button class="btn pri" data-act="regExport">Export full register</button></div>
+  ${gs.length ? `<div class="tw"><table class="t"><thead><tr><th>${gLabel}</th><th class="n">Count</th><th class="n">Weight (MT)</th><th class="n">Taxable</th><th class="n">GST</th><th class="n">Invoice value</th><th class="n">Freight bills</th></tr></thead><tbody>${gs.map(g => `<tr><td>${esc(g.k)}</td><td class="n">${g.n}</td><td class="n">${qf(g.kg / 1000, 3)}</td><td class="n">${money(g.taxable)}</td><td class="n">${money(g.tax)}</td><td class="n">${money(g.total)}</td><td class="n">${money(g.freight)}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td>Total</td><td class="n">${T.n}</td><td class="n">${qf(T.kg / 1000, 3)}</td><td class="n">${money(T.taxable)}</td><td class="n">${money(T.tax)}</td><td class="n">${money(T.total)}</td><td class="n">${money(T.freight)}</td></tr></tfoot></table></div>` : '<div class="empty">No transactions in this period.</div>'}</div>`;
+  $('#view').onchange = e => { const id = e.target.id; if (id === 'rFrom') r.from = e.target.value; else if (id === 'rTo') r.to = e.target.value; else if (id === 'rClient') r.client = e.target.value; else if (id === 'rBy') r.by = e.target.value; else return; render(); };
+}
+function registerRow(t) {
+  const c = calc(t);
+  return { ...tallyRow(t), 'Stage': txStage(t)[0], 'Summary': byId(db.summaries, t.summaryId)?.no || '', 'Invoice Weight (kg)': c.invKg ?? '', 'Weighbridge': byId(db.bridges, t.bridgeId)?.name || '', 'Slip No': t.slipNo, 'Slip Date': fmtDate(t.wsDate), 'Slip Gross (kg)': c.grossKg ?? '', 'Slip Tare (kg)': c.tare ?? '', 'Slip Net (kg)': c.slipKg ?? '', 'Freight Bill': c.own ? 'Issued by us' : t.freightId ? 'Recorded' : '', 'Freight Bill No': t.fbNo, 'Freight Bill Date': fmtDate(t.fbDate), 'LR No': t.lrNo, 'Freight Bill Amount': c.own ? c.fTotal : (c.fbAmt ?? ''), 'Expected Freight': c.fTotal, 'Freight GST RCM': c.rcm ? 'Yes' : 'No', 'Delivered': t.delivered ? 'Yes' : 'No', 'Notes': t.notes };
+}
+
+/* =====================================================================
+   Masters
+   ===================================================================== */
+const MASTERS = {
+  clients: {
+    title: 'Sellers', one: 'seller', help: 'Businesses you raise bills for — the seller on each invoice. Their default weighbridge and freight company fill in automatically.',
+    cols: [['name', 'Name'], ['gstin', 'GSTIN'], ['place', 'Dispatch place'], ['_bridge', 'Weighbridge'], ['_freight', 'Freight company']],
+    fields: () => [{ k: 'name', label: 'Name', req: 1, wide: 1 }, { k: 'gstin', label: 'GSTIN', upper: 1 }, { k: 'stateCode', label: 'State', type: 'select', options: STATE_OPTS }, { k: 'address', label: 'Address', type: 'textarea', wide: 1 }, { k: 'place', label: 'Dispatch place', help: 'Used as "From" on new rows' }, { k: 'pincode', label: 'Pincode' }, { k: 'phone', label: 'Phone' }, { k: 'email', label: 'Email' }, { k: 'bridgeId', label: 'Default weighbridge', type: 'select', options: () => listOpts(db.bridges, '— none —') }, { k: 'freightId', label: 'Default freight company', type: 'select', options: () => listOpts(db.freight, '— none —') }]
+  },
+  buyers: {
+    title: 'Buyers', one: 'buyer', help: 'Who the invoices are made out to (consignee).',
+    cols: [['name', 'Name'], ['gstin', 'GSTIN'], ['_state', 'State'], ['place', 'Delivery place']],
+    fields: () => [{ k: 'name', label: 'Name', req: 1, wide: 1 }, { k: 'gstin', label: 'GSTIN', upper: 1 }, { k: 'stateCode', label: 'State', type: 'select', options: STATE_OPTS }, { k: 'address', label: 'Address', type: 'textarea', wide: 1 }, { k: 'place', label: 'Delivery place', help: 'Used as "To" on new rows' }, { k: 'pincode', label: 'Pincode' }, { k: 'phone', label: 'Phone' }]
+  },
+  products: {
+    title: 'Products', one: 'product', help: 'Goods you invoice. For units like bags or nos, give the weight per unit so invoices can be compared with weighment slips.',
+    cols: [['name', 'Name'], ['hsn', 'HSN'], ['unit', 'Unit'], ['_gst', 'GST'], ['_rate', 'Default rate']],
+    fields: () => [{ k: 'name', label: 'Name', req: 1, wide: 1 }, { k: 'hsn', label: 'HSN code' }, { k: 'unit', label: 'Unit', type: 'select', options: UNIT_OPTS }, { k: 'weightPerUnit', label: 'Kg per unit', type: 'number', help: 'Only for non-weight units (bags, nos…)' }, { k: 'gst', label: 'GST %', type: 'select', options: GST_OPTS }, { k: 'rate', label: 'Default rate (₹ per unit)', type: 'number' }]
+  },
+  freight: {
+    title: 'Freight companies', one: 'freight company', help: 'Transporters who carry the goods. For other transporters you record the bills they send you; the expected rate is used to check those bills. Bill numbering, bank details and the bill template are used only for your own transport business (chosen in Settings).',
+    cols: [['name', 'Name'], ['gstin', 'GSTIN'], ['_basis', 'Freight'], ['_gstf', 'GST'], ['_next', 'Next bill no.']],
+    fields: () => [{ k: 'name', label: 'Name', req: 1, wide: 1 }, { k: 'gstin', label: 'GSTIN', upper: 1 }, { k: 'pan', label: 'PAN', upper: 1 }, { k: 'stateCode', label: 'State', type: 'select', options: STATE_OPTS }, { k: 'address', label: 'Address', type: 'textarea', wide: 1 }, { k: 'phone', label: 'Phone' }, { k: 'email', label: 'Email' },
+      { section: 'Freight charges' }, { k: 'basis', label: 'Charged', type: 'select', options: Object.entries(BASIS) }, { k: 'rate', label: 'Default rate (₹)', type: 'number' }, { k: 'billTo', label: 'Bill freight to', type: 'select', options: [['client', 'Seller (consignor)'], ['buyer', 'Buyer (consignee)']] }, { k: 'gst', label: 'GST % on freight', type: 'select', options: ['0', '5', '12', '18'] }, { k: 'rcm', label: 'GST under reverse charge (paid by recipient)', type: 'check', wide: 1 },
+      { section: 'Bill numbering (your own transport business only)', note: 'Use {FY} in the prefix for the financial year, e.g. KR/{FY}/ → KR/25-26/001' }, { k: 'prefix', label: 'Prefix' }, { k: 'next', label: 'Next number', type: 'number' }, { k: 'pad', label: 'Digits', type: 'number' },
+      { section: 'Printed on the bill (your own transport business only)' }, { k: 'bank', label: 'Bank details', type: 'textarea', wide: 1, rows: 3 }]
+  },
+  bridges: {
+    title: 'Weighbridges', one: 'weighbridge', help: 'Where the goods are weighed. The weighbridge issues the slip; you record its slip number and weights on each transaction.',
+    cols: [['name', 'Name'], ['place', 'Place'], ['phone', 'Phone']],
+    fields: () => [{ k: 'name', label: 'Name', req: 1, wide: 1 }, { k: 'address', label: 'Address', type: 'textarea', wide: 1 }, { k: 'place', label: 'Place' }, { k: 'phone', label: 'Phone' }]
+  },
+  vehicles: {
+    title: 'Vehicles', one: 'vehicle', help: 'Trucks you see often, so their numbers can be picked from a list and their usual transporter filled in.',
+    cols: [['number', 'Vehicle no.'], ['owner', 'Owner'], ['_freight', 'Freight company']],
+    fields: () => [{ k: 'number', label: 'Vehicle number', req: 1, upper: 1 }, { k: 'owner', label: 'Owner' }, { k: 'phone', label: 'Driver / owner phone' }, { k: 'freightId', label: 'Usually with', type: 'select', options: () => listOpts(db.freight, '— none —') }]
+  }
+};
+const MASTER_DEFAULTS = { freight: { basis: 'mt', billTo: 'client', gst: '5', rcm: true, prefix: 'FB/{FY}/', next: 1, pad: 3 }, products: { unit: 'MT', gst: '5' } };
+function masterCell(m, k, x) {
+  switch (k) {
+    case '_bridge': return esc(byId(db.bridges, x.bridgeId)?.name || '—');
+    case '_freight': return esc(byId(db.freight, x.freightId)?.name || '—');
+    case '_state': return esc(STATES[partyState(x)] || '—');
+    case '_gst': return esc((x.gst ?? '') + '%');
+    case '_rate': return has(x.rate) ? money(x.rate) : '—';
+    case '_basis': return esc(BASIS[x.basis] || '') + (has(x.rate) ? ' · ₹' + money(x.rate) : '');
+    case '_gstf': return x.rcm ? 'RCM' + (num(x.gst) ? ' ' + x.gst + '%' : '') : esc((x.gst || 0) + '%');
+    case '_next': return esc(String(x.prefix || '').replace(/\{FY\}/g, fyOf()) + String(Math.max(1, num(x.next) || 1)).padStart(Math.max(1, num(x.pad) || 3), '0'));
+    case 'gstin': { if (!has(x.gstin)) return '<span class="muted">—</span>'; const s = gstinStatus(x.gstin); return esc(x.gstin) + (s === 'ok' ? '' : ' <span class="chip err" title="' + esc(GST_MSG[s]) + '">check</span>'); }
+    default: return esc(x[k] ?? '');
+  }
+}
+function viewMaster(key) {
+  const M = MASTERS[key]; if (!M) return viewDashboard();
+  const list = db[key];
+  setBar(M.title, `<button class="btn pri" data-act="mAdd" data-m="${key}">+ Add ${M.one}</button>`);
+  const tplBtn = key === 'freight';
+  $('#view').innerHTML = `<div class="card"><p class="sub" style="margin-top:0">${esc(M.help)}</p>
+  ${list.length > 8 ? `<div class="filters"><input class="inp" id="mQ" placeholder="Search ${esc(M.title.toLowerCase())}…" style="min-width:260px"></div>` : ''}
+  ${list.length ? `<div class="tw"><table class="t" id="mTbl"><thead><tr>${M.cols.map(c => `<th>${c[1]}</th>`).join('')}<th></th></tr></thead><tbody>
+  ${[...list].sort((a, b) => String(a.name || a.number).localeCompare(String(b.name || b.number))).map(x => `<tr class="click" data-act="mEdit" data-m="${key}" data-id="${x.id}" data-s="${esc(Object.values(x).filter(v => typeof v === 'string').join(' ').toLowerCase())}">${M.cols.map(c => `<td>${masterCell(key, c[0], x)}</td>`).join('')}<td data-stop="1" style="white-space:nowrap">${tplBtn && x.id === db.settings.ownFreightId ? `<button class="btn sm" data-act="tplEdit" data-id="${x.id}">Bill template</button>` : tplBtn ? '<span class="small muted">bills recorded</span>' : ''}</td></tr>`).join('')}
+  </tbody></table></div>` : `<div class="empty">No ${esc(M.title.toLowerCase())} yet.</div>`}</div>`;
+  const q = $('#mQ'); if (q) q.oninput = () => { const s = q.value.toLowerCase(); $$('#mTbl tbody tr').forEach(tr => tr.style.display = tr.dataset.s.includes(s) ? '' : 'none'); };
+}
+function masterRefs(key, id) {
+  const live = db.tx.filter(t => !t.deleted);
+  const sumRows = db.summaries.flatMap(s => s.versions.flatMap(v => v.rows.map(r => ({ s, r }))));
+  switch (key) {
+    case 'clients': return live.filter(t => t.clientId === id).length + db.summaries.filter(s => s.clientId === id).length;
+    case 'buyers': return live.filter(t => t.buyerId === id).length + sumRows.filter(x => x.r.buyerId === id).length;
+    case 'products': return live.filter(t => t.productId === id).length + sumRows.filter(x => x.r.productId === id).length;
+    case 'freight': return live.filter(t => t.freightId === id).length + sumRows.filter(x => x.r.freightId === id).length;
+    case 'bridges': return live.filter(t => t.bridgeId === id).length + sumRows.filter(x => x.r.bridgeId === id).length;
+    default: return 0;
+  }
+}
+function editMaster(key, id) {
+  const M = MASTERS[key], list = db[key];
+  const orig = id ? byId(list, id) : null;
+  const obj = orig ? { ...orig } : { ...(MASTER_DEFAULTS[key] || {}) };
+  const fields = M.fields();
+  const m = openModal({
+    title: (orig ? 'Edit ' : 'Add ') + M.one, size: key === 'freight' ? 'mid' : '', html: formHTML(fields, obj) + '<div id="gstHint" class="small" style="margin-top:8px"></div>',
+    buttons: [
+      ...(orig ? [{ label: 'Delete', cls: 'danger', left: true, onClick: async () => {
+        const refs = masterRefs(key, id);
+        if (refs) { toast(`Can't delete — used in ${refs} transaction(s)/summary row(s)`, 'err'); return false; }
+        if (!(await confirmBox(`Delete ${M.one} "${orig.name || orig.number}"?`, 'Delete', true))) return false;
+        db[key] = list.filter(x => x.id !== id); log(`${M.title}: deleted ${orig.name || orig.number}`); save(); render();
+      } }] : []),
+      ...(key === 'freight' && orig && id === db.settings.ownFreightId ? [{ label: 'Edit bill template', onClick: () => { if (!saveIt()) return false; setTimeout(() => editTemplate('fb', id), 30); } }] : []),
+      { label: 'Cancel' }, { label: 'Save', cls: 'pri', onClick: () => saveIt() }]
+  });
+  const hint = () => {
+    const g = $('[name=gstin]', m.el); if (!g) return;
+    const s = gstinStatus(g.value); const h = $('#gstHint', m.el);
+    h.innerHTML = !has(g.value) ? '' : s === 'ok' ? `<span class="chip ok">GSTIN valid</span> State: ${esc(STATES[g.value.trim().slice(0, 2)])}` : `<span class="chip err">GSTIN ${esc(GST_MSG[s])}</span>`;
+  };
+  m.body.addEventListener('input', hint); hint();
+  function saveIt() {
+    const f = readForm(m.body);
+    const req = fields.filter(x => x.req && !x.section).find(x => !has(f[x.k]));
+    if (req) { toast(req.label + ' is required', 'warn'); return false; }
+    if (key === 'vehicles') { const dup = db.vehicles.find(v => v.id !== id && normVeh(v.number) === normVeh(f.number)); if (dup) { toast('This vehicle already exists', 'err'); return false; } f.number = f.number.replace(/\s+/g, ''); }
+    else { const dup = list.find(x => x.id !== id && String(x.name).trim().toLowerCase() === f.name.toLowerCase()); if (dup) { toast(`A ${M.one} with this name already exists`, 'err'); return false; } }
+    if (has(f.gstin) && !has(f.stateCode) && gstinStatus(f.gstin) === 'ok') f.stateCode = f.gstin.slice(0, 2);
+    if (has(f.gstin) && gstinStatus(f.gstin) !== 'ok') toast('Saved, but the GSTIN looks wrong — please check it', 'warn');
+    if (orig) { Object.assign(orig, f); log(`${M.title}: updated ${f.name || f.number}`); }
+    else { const n = { id: uid(), ...f }; if (key === 'freight') n.tpl = defaultTpl('fb'); list.push(n); log(`${M.title}: added ${f.name || f.number}`); }
+    save(); render(); return true;
+  }
+}
+
+/* =====================================================================
+   Settings
+   ===================================================================== */
+function viewSettings() {
+  setBar('Settings & backup');
+  const s = db.settings;
+  const size = (() => { try { return (JSON.stringify(db).length / 1024).toFixed(0) + ' KB'; } catch (e) { return '?'; } })();
+  let fileCard;
+  if (!fsSupported) fileCard = `<div class="note warn">This browser can't link a data file. Use Chrome or Edge for automatic file saving, or download backups regularly below.</div>`;
+  else if (fileState === 'linked') fileCard = `<div class="note ok">Linked to <b>${esc(fileHandle?.name || 'data file')}</b> — every change is written to it automatically.</div><div class="row"><button class="btn" data-act="unlinkFile">Unlink</button></div>`;
+  else if (fileState === 'needs-permission') fileCard = `<div class="note warn">Linked to <b>${esc(fileHandle?.name || 'data file')}</b>, but the browser needs your OK again after a restart.</div><div class="row"><button class="btn amb" data-act="reconnect">Reconnect</button><button class="btn" data-act="unlinkFile">Unlink</button></div>`;
+  else fileCard = `<p class="sub">Save your data as a file in your Google Drive folder, so it is kept safe and can be opened on another computer. Recommended.</p><div class="row"><button class="btn pri" data-act="linkFile">Save data to a new file…</button><button class="btn" data-act="openFile">Open an existing data file…</button></div>`;
+  $('#view').innerHTML = `<div class="grid2">
+  <div class="card"><h3>Business</h3><p class="sub">Shown on seller summaries.</p><div id="setForm">${formHTML([{ k: 'bizName', label: 'Your business name', wide: 1 }, { k: 'txPrefix', label: 'Transaction ID prefix' }, { k: 'txNext', label: 'Next transaction number', type: 'number' }, { k: 'sumPrefix', label: 'Summary prefix' }, { k: 'sumNext', label: 'Next summary number', type: 'number' }, { k: 'ewbLimit', label: 'E-way bill needed above (₹)', type: 'number' }, { section: 'Transport & weighment' }, { k: 'ownFreightId', label: 'Your transport business', type: 'select', options: () => listOpts(db.freight, '— none —'), wide: 1, help: 'Only choose a transport business you own and run. Its freight bills are printed here; bills from every other transporter are recorded from the bill they send you.' }, { k: 'wtTol', label: 'Allowed slip vs invoice weight difference (kg)', type: 'number', help: 'Above this, the transaction shows an error.' }], s)}</div><div class="row end" style="margin-top:12px"><button class="btn pri" data-act="saveSettings">Save</button></div></div>
+  <div class="card"><h3>Data file</h3>${fileCard}</div>
+  <div class="card"><h3>Backup & restore</h3><p class="sub">Data size: ${size}. A backup is one JSON file with everything — masters, summaries, transactions and templates.</p><div class="row"><button class="btn pri" data-act="backup">Download backup</button><button class="btn" data-act="restore">Restore from backup…</button></div></div>
+  <div class="card"><h3>Sample data & reset</h3><p class="sub">Load example sellers, buyers, transporters and transactions to try things out, or clear everything.</p><div class="row"><button class="btn" data-act="sample">Load sample data</button><button class="btn danger" data-act="clearAll">Erase all data…</button></div></div>
+  </div>`;
+}
+async function restoreBackup() {
+  const file = await pickFile('.json,application/json'); if (!file) return;
+  try {
+    const d = JSON.parse(await file.text());
+    if (!d || !Array.isArray(d.tx) || !d.settings) throw new Error('This is not a Billing Desk backup');
+    if (!(await confirmBox(`Replace ALL current data with the backup "${file.name}" (${d.tx.length} transactions)?`, 'Replace', true))) return;
+    db = migrate(d); log('Restored from backup ' + file.name); save(); render(); toast('Backup restored');
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+/* =====================================================================
+   Sample data
+   ===================================================================== */
+function mkGstin(state, pan, n = '1') { const s14 = state + pan + n + 'Z'; return s14 + gstCheckChar(s14); }
+async function loadSample() {
+  if (db.tx.length || db.clients.length) { if (!(await confirmBox('Sample data will be ADDED to your existing data. Continue?', 'Add sample data'))) return; }
+  const id = () => uid();
+  const kr = { id: id(), name: 'Kongu Roadways', gstin: mkGstin('33', 'AAKFK4521M'), pan: 'AAKFK4521M', stateCode: '33', address: '14, Lorry Pet Road\nNamakkal 637001', phone: '94430 11223', email: '', basis: 'mt', rate: '1150', billTo: 'client', gst: '5', rcm: true, prefix: 'KR/{FY}/', next: 41, pad: 3, bank: 'Indian Bank, Namakkal\nA/c 6123456789\nIFSC IDIB000N012', tpl: defaultTpl('fb') };
+  const sl = { id: id(), name: 'Southern Logistics', gstin: mkGstin('33', 'ABCPS7788Q'), pan: 'ABCPS7788Q', stateCode: '33', address: 'Plot 7, SIDCO Estate\nErode 638001', phone: '98420 55667', basis: 'trip', rate: '16500', billTo: 'buyer', gst: '12', rcm: false };
+  const sw = { id: id(), name: 'Sakthi Weighbridge', address: 'Avinashi Road, Coimbatore 641014', place: 'Coimbatore', phone: '0422 2577001' };
+  const ew = { id: id(), name: 'Erode Electronic Weigh Bridge', address: 'Perundurai Road, Erode', place: 'Erode', phone: '0424 2266001' };
+  const sbw = { id: id(), name: 'Bhavani Modern Weighbridge', address: 'Bhavani Main Road, Erode', place: 'Bhavani', phone: '04256 230011' };
+  const c1 = { id: id(), name: 'Sri Lakshmi Traders', gstin: mkGstin('33', 'AAPFS1234K'), stateCode: '33', address: '22, Raja Street\nCoimbatore 641001', place: 'Coimbatore', pincode: '641001', phone: '98940 12345', email: '', bridgeId: sw.id, freightId: kr.id };
+  const c2 = { id: id(), name: 'Vinayaga Agro Products', gstin: mkGstin('33', 'AAHFV5566L'), stateCode: '33', address: 'SF 45, Chennimalai Road\nErode 638001', place: 'Erode', pincode: '638001', phone: '97888 44556', bridgeId: ew.id, freightId: sl.id };
+  const b1 = { id: id(), name: 'Kaveri Feeds Pvt Ltd', gstin: mkGstin('29', 'AADCK9911F'), stateCode: '29', address: 'KIADB Industrial Area, Hebbal\nMysuru 570016', place: 'Mysuru', pincode: '570016' };
+  const b2 = { id: id(), name: 'Annai Mills', gstin: mkGstin('33', 'AAJFA3322H'), stateCode: '33', address: 'Palladam Road\nTiruppur 641604', place: 'Tiruppur', pincode: '641604' };
+  const b3 = { id: id(), name: 'Deccan Agro Foods', gstin: mkGstin('36', 'AAECD4455G'), stateCode: '36', address: 'Plot 12, IDA Patancheru\nHyderabad 502319', place: 'Hyderabad', pincode: '502319' };
+  const p1 = { id: id(), name: 'Maize', hsn: '1005', unit: 'MT', gst: '5', rate: '23500', weightPerUnit: '' };
+  const p2 = { id: id(), name: 'De-oiled Rice Bran', hsn: '2306', unit: 'MT', gst: '5', rate: '14200', weightPerUnit: '' };
+  const p3 = { id: id(), name: 'Cattle Feed (50 kg bags)', hsn: '2309', unit: 'BAGS', gst: '5', rate: '1450', weightPerUnit: '50' };
+  const v1 = { id: id(), number: 'TN38BX4521', owner: 'Murugan', freightId: kr.id };
+  const v2 = { id: id(), number: 'TN33AK7788', owner: 'Southern Logistics', freightId: sl.id };
+  const v3 = { id: id(), number: 'TN37CC1209', owner: 'Selvam', freightId: kr.id };
+  const v4 = { id: id(), number: 'TN56H3344', owner: 'Rajan' };
+  db.freight.push(kr, sl); db.bridges.push(sw, ew, sbw); db.clients.push(c1, c2); db.buyers.push(b1, b2, b3); db.products.push(p1, p2, p3); db.vehicles.push(v1, v2, v3, v4);
+  if (!db.settings.ownFreightId) db.settings.ownFreightId = kr.id;   // the sample's own transport business
+  const d0 = todayISO(), dm3 = addDays(d0, -3), dm2 = addDays(d0, -2);
+  // Summary 1: sent v1 → changes → v2 agreed → transactions
+  const r1 = { rid: id(), date: dm3, buyerId: b1.id, productId: p1.id, qty: '18', rate: '23500', gst: '5', vehicle: 'TN38BX4521', from: 'Coimbatore', to: 'Mysuru', freightId: kr.id, bridgeId: sw.id, note: '' };
+  const r2 = { rid: id(), date: dm3, buyerId: b2.id, productId: p2.id, qty: '15', rate: '14200', gst: '5', vehicle: 'TN37CC1209', from: 'Coimbatore', to: 'Tiruppur', freightId: kr.id, bridgeId: sw.id, note: '' };
+  const r3 = { rid: id(), date: dm3, buyerId: b3.id, productId: p1.id, qty: '20', rate: '23800', gst: '5', vehicle: 'TN56H3344', from: 'Coimbatore', to: 'Hyderabad', freightId: kr.id, bridgeId: sw.id, note: '' };
+  const v1rows = [r1, r2, r3].map(r => ({ ...r }));
+  const v2rows = [{ ...r1, qty: '19.5', rate: '23400' }, { ...r2 }, { rid: id(), date: dm2, buyerId: b2.id, productId: p3.id, qty: '400', rate: '1450', gst: '5', vehicle: 'TN38BX4521', from: 'Coimbatore', to: 'Tiruppur', freightId: kr.id, bridgeId: sw.id, note: 'Added on seller request' }];
+  const s1 = { id: id(), no: db.settings.sumPrefix + String(db.settings.sumNext++).padStart(3, '0'), clientId: c1.id, title: 'Sample · this week', created: Date.now() - 3 * 864e5, status: 'agreed', agreedV: 2, versions: [{ v: 1, created: Date.now() - 3 * 864e5, sentOn: Date.now() - 3 * 864e5 + 36e5, rows: v1rows }, { v: 2, created: Date.now() - 2 * 864e5, sentOn: Date.now() - 2 * 864e5 + 36e5, agreedOn: Date.now() - 2 * 864e5 + 72e5, rows: v2rows }] };
+  db.summaries.push(s1);
+  const made = v2rows.map(r => { const t = newTx({ clientId: c1.id, buyerId: r.buyerId, productId: r.productId, unit: byId(db.products, r.productId).unit, qty: r.qty, rate: r.rate, gst: r.gst, vehicle: r.vehicle, from: r.from, to: r.to, freightId: r.freightId, bridgeId: r.bridgeId, date: r.date, notes: r.note, summaryId: s1.id, rowId: r.rid }); db.tx.push(t); return t; });
+  s1.converted = true; s1.txIds = made.map(t => t.id);
+  // slip details as copied from the weighbridge's own slip
+  Object.assign(made[0], { invNo: 'SLT/' + fyOf() + '/118', invDate: dm2, ewbNo: '331234567890', ewbDate: dm2, lrNo: '5521', km: '205', slipNo: 'SW03120', wsDate: dm2, grossWt: '28700', grossTime: '11:40', tareWt: '9200', tareTime: '11:05' });
+  made[0].fbNo = nextNumber(kr, dm2); made[0].docs = { fb: { at: Date.now(), no: made[0].fbNo } };
+  Object.assign(made[1], { invNo: 'SLT/' + fyOf() + '/119', invDate: dm2, ewbNo: '331234567891', ewbDate: dm2, lrNo: '5522' });
+  // Summary 2: draft for seller 2
+  const s2 = { id: id(), no: db.settings.sumPrefix + String(db.settings.sumNext++).padStart(3, '0'), clientId: c2.id, title: 'Sample · next dispatches', created: Date.now(), status: 'draft', versions: [{ v: 1, created: Date.now(), rows: [
+    { rid: id(), date: d0, buyerId: b1.id, productId: p2.id, qty: '22', rate: '14100', gst: '5', vehicle: 'TN33AK7788', from: 'Erode', to: 'Mysuru', freightId: sl.id, bridgeId: ew.id, note: '' },
+    { rid: id(), date: d0, buyerId: b2.id, productId: p1.id, qty: '16', rate: '23600', gst: '5', vehicle: 'TN33AK7788', from: 'Erode', to: 'Tiruppur', freightId: sl.id, bridgeId: sbw.id, note: 'Second trip' }] }] };
+  db.summaries.push(s2);
+  // A direct transaction for seller 2, carried by another transporter: their bill and the slip are recorded
+  const t4 = newTx({ clientId: c2.id, buyerId: b3.id, productId: p1.id, unit: 'MT', qty: '21', rate: '23700', gst: '5', vehicle: 'TN33AK7788', from: 'Erode', to: 'Hyderabad', freightId: sl.id, bridgeId: ew.id, date: dm2, invNo: 'VAP/' + fyOf() + '/052', invDate: dm2, ewbNo: '331234567892', ewbDate: dm2, lrNo: 'CN-9031', slipNo: 'EEW/0077', wsDate: dm2, grossWt: '32400', grossTime: '09:05', tareWt: '11400', tareTime: '08:20', fbNo: 'SL-0208', fbDate: dm2, fbAmt: '18480' });
+  db.tx.push(t4);
+  log('Sample data loaded'); save(); toast('Sample data loaded'); go('dashboard');
+}
+
+/* =====================================================================
+   Global actions (event delegation)
+   ===================================================================== */
+const ACT = {
+  go: b => go(b.dataset.v),
+  sample: () => loadSample(),
+  reconnect: () => reconnectFile(),
+  linkFile: () => linkNewFile(), openFile: () => openDataFile(), unlinkFile: () => unlinkFile(),
+  newSummary: () => newSummary(),
+  openSummary: b => openSummary(b.dataset.id),
+  sumVer: b => { ui.sumVer = +b.dataset.i; try { sessionStorage.setItem('bd.sum', JSON.stringify({ id: ui.sumId, v: ui.sumVer })); } catch (e) { /* ignore */ } render(); },
+  sumAddRow: () => { const s = byId(db.summaries, ui.sumId); const rows = s.versions[s.versions.length - 1].rows; const last = rows[rows.length - 1]; addSumRow(s, last ? { date: last.date, productId: last.productId, rate: last.rate, gst: last.gst, from: last.from, freightId: last.freightId, bridgeId: last.bridgeId } : undefined); },
+  sumDupRow: b => { const s = byId(db.summaries, ui.sumId); const rows = s.versions[s.versions.length - 1].rows; const i = rows.findIndex(r => r.rid === b.dataset.rid); rows.splice(i + 1, 0, { ...rows[i], rid: uid(), vehicle: '' }); save(); render(); },
+  sumDelRow: b => { const s = byId(db.summaries, ui.sumId); const ver = s.versions[s.versions.length - 1]; ver.rows = ver.rows.filter(r => r.rid !== b.dataset.rid); save(); render(); },
+  sumSent: async () => { const s = byId(db.summaries, ui.sumId); const ver = s.versions[s.versions.length - 1]; if (!ver.rows.length) return toast('Add at least one row', 'warn'); const bad = ver.rows.filter(r => !r.buyerId || !(num(r.qty) > 0) || !(num(r.rate) > 0)); if (bad.length && !(await confirmBox(`${bad.length} row(s) are missing buyer, quantity or rate. Mark as sent anyway?`, 'Mark as sent'))) return; ver.sentOn = Date.now(); s.status = 'sent'; log(`${s.no} v${ver.v} sent to seller`); save(); render(); toast('Locked as sent. Use “Print for seller” or “Export Excel” to share it.'); },
+  sumNewVer: () => { const s = byId(db.summaries, ui.sumId); const ver = s.versions[s.versions.length - 1]; s.versions.push({ v: ver.v + 1, created: Date.now(), rows: ver.rows.map(r => ({ ...r })) }); s.status = 'draft'; ui.sumVer = null; log(`${s.no}: v${ver.v + 1} started (seller asked for changes)`); save(); render(); toast(`Version ${ver.v + 1} created — make the seller's changes`); },
+  sumAgreed: async () => { const s = byId(db.summaries, ui.sumId); const ver = s.versions[s.versions.length - 1]; if (!ver.rows.length) return toast('No rows to agree', 'warn'); const bad = ver.rows.filter(r => !r.buyerId || !(num(r.qty) > 0) || !(num(r.rate) > 0)); if (bad.length) return toast(`${bad.length} row(s) are missing buyer, quantity or rate`, 'err'); if (!(await confirmBox(`Record that the seller agreed to v${ver.v} (${ver.rows.length} invoices)? This version will be locked.`, 'Seller agreed'))) return; if (!ver.sentOn) ver.sentOn = Date.now(); ver.agreedOn = Date.now(); s.status = 'agreed'; s.agreedV = ver.v; log(`${s.no} v${ver.v} agreed by seller`); save(); render(); },
+  sumReopen: async () => { const s = byId(db.summaries, ui.sumId); if (!(await confirmBox('Reopen this summary? It goes back to "sent" so you can start a new version.', 'Reopen'))) return; s.status = 'sent'; delete s.agreedV; log(`${s.no} reopened`); save(); render(); },
+  sumCreateTx: async () => { const s = byId(db.summaries, ui.sumId); if (s.converted) return; const ver = s.versions.find(v => v.v === s.agreedV); if (!(await confirmBox(`Create ${ver.rows.length} transaction(s) from ${s.no} v${ver.v}?`, 'Create'))) return; createTxFromSummary(s); },
+  sumShowTx: () => { const s = byId(db.summaries, ui.sumId); ui.tf = { q: s.no, client: '', stage: '', from: '', to: '', deleted: false }; go('transactions'); },
+  sumDiscard: async () => { const s = byId(db.summaries, ui.sumId); if (s.versions.length < 2) return; if (!(await confirmBox(`Discard draft v${s.versions.length}? You go back to v${s.versions.length - 1} as sent.`, 'Discard', true))) return; s.versions.pop(); s.status = 'sent'; ui.sumVer = null; log(`${s.no}: draft v${s.versions.length + 1} discarded`); save(); render(); },
+  sumDelete: async () => { const s = byId(db.summaries, ui.sumId); if (!(await confirmBox(`Delete summary ${s.no}? This cannot be undone.`, 'Delete', true))) return; db.summaries = db.summaries.filter(x => x.id !== s.id); log(`${s.no} deleted`); save(); go('summaries'); },
+  sumPrint: () => { const s = byId(db.summaries, ui.sumId); const vi = ui.sumVer ?? s.versions.length - 1; const ver = s.versions[vi]; printHTML(sumPrintHTML(s, ver), `${s.no} v${ver.v} - ${byId(db.clients, s.clientId)?.name || ''}`); },
+  sumExport: () => { const s = byId(db.summaries, ui.sumId); const ver = s.versions[ui.sumVer ?? s.versions.length - 1]; exportRows(`${s.no} v${ver.v} - ${byId(db.clients, s.clientId)?.name || ''}`, ver.rows.map((r, i) => { const c = calc(rowTx(s, r)); return { '#': i + 1, 'Date': fmtDate(r.date), 'Buyer': c.buyer?.name || '', 'Buyer GSTIN': c.buyer?.gstin || '', 'Goods': c.desc, 'HSN': c.hsn, 'Qty': c.qty, 'Unit': c.unit, 'Rate': c.rate, 'Taxable': c.taxable, 'GST %': c.gst, 'GST': c.tax, 'Invoice Value': c.total, 'Vehicle': r.vehicle, 'From': r.from, 'To': r.to, 'Freight Co.': c.fc?.name || '', 'Weighbridge': byId(db.bridges, r.bridgeId)?.name || '', 'Note': r.note }; })); },
+  newTx: () => { if (!db.clients.length || !db.buyers.length) { toast('Add at least one seller and one buyer first', 'warn'); return go(db.clients.length ? 'm:buyers' : 'm:clients'); } editTx(null); },
+  editTx: b => editTx(b.dataset.id),
+  txRestore: b => { const t = byId(db.tx, b.dataset.id); t.deleted = false; t.history.push({ at: Date.now(), msg: 'Restored' }); log(`${t.code} restored`); save(); render(); },
+  printTx: b => printOwnBills([byId(db.tx, b.dataset.id)]),
+  bulkPrint: () => printOwnBills(filteredTx().filter(t => ui.sel.has(t.id) && !t.deleted)),
+  printReady: () => printOwnBills(liveTx().filter(t => !t.delivered && has(t.invNo) && isOwnFreight(t) && (!t.docs?.fb || docsOutdated(t)) && !checkTx(t).some(i => i.sev === 'error'))),
+  bulkDelivered: () => { let n = 0; filteredTx().filter(t => ui.sel.has(t.id) && !t.delivered).forEach(t => { t.delivered = true; t.history.push({ at: Date.now(), msg: 'Marked delivered' }); n++; }); log(`${n} transaction(s) marked delivered`); ui.sel.clear(); save(); render(); toast(`${n} marked delivered`); },
+  bulkExport: () => { const l = filteredTx(); exportRows('Transactions ' + todayISO(), (ui.sel.size ? l.filter(t => ui.sel.has(t.id)) : l).map(registerRow)); },
+  tfClear: () => { ui.tf = { q: '', client: '', stage: '', from: '', to: '', deleted: false }; render(); },
+  tallyExport: b => { const l = liveTx().filter(t => b.dataset.w === 'all' || !has(t.invNo)).sort((a, b2) => a.code.localeCompare(b2.code)); exportRows('For Tally ' + todayISO(), l.map(tallyRow)); },
+  tallySave: () => tallySave(),
+  tallyImport: () => tallyImport(),
+  tplEdit: b => editTemplate('fb', b.dataset.id),
+  mAdd: b => editMaster(b.dataset.m, null),
+  mEdit: b => editMaster(b.dataset.m, b.dataset.id),
+  repExport: () => { const r = ui.rep, [gl, gf] = GROUPS[r.by]; const m = new Map(); repRows().forEach(t => { const c = calc(t), k = gf(t); const g = m.get(k) || { [gl]: k, Count: 0, 'Weight (MT)': 0, Taxable: 0, GST: 0, 'Invoice Value': 0, 'Freight Bills': 0 }; g.Count++; g['Weight (MT)'] = r2(g['Weight (MT)'] + (c.netKg || 0) / 1000); g.Taxable = r2(g.Taxable + c.taxable); g.GST = r2(g.GST + c.tax); g['Invoice Value'] = r2(g['Invoice Value'] + c.total); g['Freight Bills'] = r2(g['Freight Bills'] + (c.own ? c.fTotal : (c.fbAmt || 0))); m.set(k, g); }); exportRows(`Report by ${gl} ${r.from} to ${r.to}`, [...m.values()]); },
+  regExport: () => exportRows(`Register ${ui.rep.from} to ${ui.rep.to}`, repRows().map(registerRow)),
+  saveSettings: () => { const f = readForm($('#setForm')); Object.assign(db.settings, f, { txNext: Math.max(1, Math.floor(num(f.txNext)) || 1), sumNext: Math.max(1, Math.floor(num(f.sumNext)) || 1), ewbLimit: num(f.ewbLimit) || 50000, wtTol: Math.max(0, num(f.wtTol)) }); log('Settings updated'); save(); render(); toast('Settings saved'); },
+  backup: () => { download(`billing-desk-backup-${todayISO()}.json`, JSON.stringify(db, null, 1), 'application/json'); log('Backup downloaded'); save(); },
+  restore: () => restoreBackup(),
+  clearAll: async () => { if (!(await confirmBox('Erase ALL data in this browser — masters, summaries, transactions, templates? Download a backup first if unsure. A linked data file will also be overwritten.', 'Erase everything', true))) return; db = blankDb(); save(); go('dashboard'); toast('All data erased'); }
+};
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+  // checkboxes / empty space in a [data-stop] cell shouldn't open the clickable row
+  const stop = e.target.closest('[data-stop]');
+  if (stop && b.contains(stop)) return;
+  if (e.target.tagName === 'INPUT' && b.tagName === 'TR') return;
+  const fn = ACT[b.dataset.act]; if (fn) { e.preventDefault(); fn(b, e); }
+});
+
+// ---------- start ----------
+render();
+initFile();
+</script>
+</body>
+</html>
